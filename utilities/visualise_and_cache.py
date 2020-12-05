@@ -12,6 +12,7 @@ import os
 import argparse
 import numpy as np
 
+from tqdm import tqdm
 from PIL import ImageDraw
 
 import pocket
@@ -28,13 +29,13 @@ if __name__ == "__main__":
 
     # Load dataset
     dataset = pocket.data.HICODet(
-        "../hicodet/hico_20160224_det/images/{}".format(args.partition),
-        "../hicodet/instances_{}.json".format(args.partition)
+        "../hico_20160224_det/images/{}".format(args.partition),
+        "../instances_{}.json".format(args.partition)
     )
 
     root_cache = os.path.join("./visualisations", args.partition)
 
-    for idx, (image, target) in enumerate(dataset):
+    for idx, (image, target) in enumerate(tqdm(dataset)):
         classes = np.asarray(target["hoi"])
         unique_cls = np.unique(classes)
         # Visualise by class
@@ -43,15 +44,24 @@ if __name__ == "__main__":
             image_ = image.copy()
             canvas = ImageDraw.Draw(image_)
             for i in sample_idx:
-                b1 = target["boxes_h"][i]
-                b2 = target["boxes_o"][i]
+                b1 = np.asarray(target["boxes_h"][i])
+                b2 = np.asarray(target["boxes_o"][i])
 
-                canvas.rectangle(b1, outline='#007CFF', width=2)
-                canvas.rectangle(b2, outline='#46FF00', width=2)
+                canvas.rectangle(b1.tolist(), outline='#007CFF', width=5)
+                canvas.rectangle(b2.tolist(), outline='#46FF00', width=5)
+                b_h_centre = (b1[:2]+b1[2:])/2
+                b_o_centre = (b2[:2]+b2[2:])/2
                 canvas.line(
-                    [(b1[0] + b1[2]) / 2, (b1[1] + b1[3]) / 2,
-                    (b2[0] + b2[2]) / 2, (b2[1] + b2[3]) / 2],
-                    fill='#FF4444', width=2
+                    b_h_centre.tolist() + b_o_centre.tolist(),
+                    fill='#FF4444', width=5
+                )
+                canvas.ellipse(
+                    (b_h_centre - 5).tolist() + (b_h_centre + 5).tolist(),
+                    fill='#FF4444'
+                )
+                canvas.ellipse(
+                    (b_o_centre - 5).tolist() + (b_o_centre + 5).tolist(),
+                    fill='#FF4444'
                 )
             cache_dir = os.path.join(root_cache, "class_{:03d}".format(cls_idx))
             if not os.path.exists(cache_dir):
@@ -59,6 +69,3 @@ if __name__ == "__main__":
             image_.save(os.path.join(
                 cache_dir, "{}.png".format(idx)
             ))
-
-        if idx % 500 == 0:
-            print(idx)
