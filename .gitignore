@@ -6,3 +6,6 @@ hico_20160224_det
 visualisations
 # Checkpoints
 checkpoints
+# Detections
+detections/train*
+detections/test*
