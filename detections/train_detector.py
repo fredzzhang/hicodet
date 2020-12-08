@@ -37,10 +37,12 @@ class DetectorEngine(pocket.core.LearningEngine):
         self._state.optimizer.step()
 
 class HICODetObject(Dataset):
-    def __init__(self, dataset, nms_thresh=0.5):
+    def __init__(self, dataset, data_root, nms_thresh=0.5):
         self.dataset = dataset
         self.nms_thresh = nms_thresh
-        with open('coco91tohico80.json', 'r') as f:
+        with open(os.path.join(
+            args.data_root, 'coco91tohico80.json'),
+        'r') as f:
             corr = json.load(f)
         self.hico2coco91 = dict(zip(corr.values(), corr.keys()))
     def __len__(self):
@@ -51,6 +53,9 @@ class HICODetObject(Dataset):
             target['boxes_h'],
             target['boxes_o']
         ])
+        # Convert ground truth boxes to zero-based index and the
+        # representation from pixel indices to coordinates
+        boxes[:, :2] -= 1
         labels = torch.cat([
             49 * torch.ones_like(target['object']),
             target['object']
@@ -175,11 +180,11 @@ def main(args):
     torch.manual_seed(args.random_seed)
 
     dataset = HICODetObject(HICODet(
-        root="hico_20160224_det/images/train2015",
-        anno_file="instances_train2015.json",
+        root=os.path.join(args.data_root, "hico_20160224_det/images/train2015"),
+        anno_file=os.path.join(args.data_root, "instances_train2015.json"),
         transform=torchvision.transforms.ToTensor(),
         target_transform=pocket.ops.ToTensor(input_format='dict')
-    ))
+    ), data_root=args.data_root)
     sampler = torch.utils.data.RandomSampler(dataset)
     group_ids = create_aspect_ratio_groups(dataset, k=args.aspect_ratio_group_factor)
     batch_sampler = GroupedBatchSampler(sampler, group_ids, args.batch_size)
@@ -212,6 +217,7 @@ def main(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Fine-tune Faster R-CNN on HICO-DET")
+    parser.add_argument('--data-root', type=str, default='../')
     parser.add_argument('--num-epochs', default=20, type=int)
     parser.add_argument('--random-seed', default=1, type=int)
     parser.add_argument('--learning-rate', default=0.001, type=float)
