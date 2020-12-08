@@ -100,7 +100,10 @@ def compute_map(
         gt_classes = torch.cat([
             human_idx * torch.ones_like(target['object']),
             target['object']
-        ])        
+        ])
+        # Convert ground truth boxes to zero-based index and the
+        # representation from pixel indices to coordinates
+        gt_boxes[:, :2] -= 1
         # Do NMS on ground truth boxes
         # NOTE This is because certain objects appear multiple times in
         # different pairs and different interactions
@@ -159,8 +162,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Dataset size analysis")
-    parser.add_argument('--data-root', required=True, type=str)
     parser.add_argument('--detection-root', required=True, type=str)
+    parser.add_argument('--data-root', type=str, default='../')
     parser.add_argument('--human-thresh', default=0.5, type=float,
                         help="Threshold used to filter low scoring human detections")
     parser.add_argument('--max-human', default=10, type=int,
