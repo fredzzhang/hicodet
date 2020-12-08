@@ -11,6 +11,7 @@ Australian Centre for Robotic Vision
 import os
 import json
 import argparse
+import numpy as np
 from tqdm import tqdm
 
 from pocket.data import HICODet
@@ -29,6 +30,11 @@ def main(args, human_idx=49):
         npairs = len(anno['boxes_h'])
 
         boxes = anno['boxes_h'] + anno['boxes_o']
+        # Convert ground truth boxes to zero-based index and the
+        # representation from pixel indices to box coordinates
+        boxes = np.asarray(boxes)
+        boxes[:, :2] -= 1
+
         labels = [human_idx for _ in range(npairs)] + anno['object']
         scores = [1. for _ in range(2 * npairs)]
 
@@ -36,12 +42,12 @@ def main(args, human_idx=49):
             cache_dir,
             fname.replace('.jpg', '.json')),
         'w') as f:
-            json.dump(dict(boxes=boxes, labels=labels, scores=scores), f)
+            json.dump(dict(boxes=boxes.tolist(), labels=labels, scores=scores), f)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Generate ground truth detections")
     parser.add_argument('--data-root', type=str, default='../')
-    parser.add_argument('--partition', type=str, default='train2015')
+    parser.add_argument('--partition', type=str, default='test2015')
     parser.add_argument('--cache-dir', type=str, default='./')
 
     args = parser.parse_args()
