@@ -32,7 +32,7 @@ def main(args, human_idx=49):
         boxes = anno['boxes_h'] + anno['boxes_o']
         # Convert ground truth boxes to zero-based index and the
         # representation from pixel indices to box coordinates
-        boxes = np.asarray(boxes)
+        boxes = np.asarray(boxes).reshape(-1, 4)
         boxes[:, :2] -= 1
 
         labels = [human_idx for _ in range(npairs)] + anno['object']
