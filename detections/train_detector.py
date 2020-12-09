@@ -102,7 +102,7 @@ class HICODetObject(Dataset):
         self.dataset = dataset
         self.nms_thresh = nms_thresh
         with open(os.path.join(
-            args.data_root, 'coco91tohico80.json'),
+            args.data_root, 'coco80tohico80.json'),
         'r') as f:
             corr = json.load(f)
         self.hico2coco91 = dict(zip(corr.values(), corr.keys()))
@@ -121,7 +121,7 @@ class HICODetObject(Dataset):
             49 * torch.ones_like(target['object']),
             target['object']
         ])
-        # Convert HICODet object (80) indices to COCO (91) indices
+        # Convert HICODet object indices to COCO indices
         converted_labels = torch.tensor([int(self.hico2coco91[i.item()]) for i in labels])
         
         return [image], [dict(boxes=boxes, labels=converted_labels)]
