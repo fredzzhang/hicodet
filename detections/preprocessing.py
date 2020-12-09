@@ -22,7 +22,7 @@ def main(args):
 	cache_dir = os.path.join(args.cache_dir, args.partition)
 	if not os.path.exists(cache_dir):
 		os.makedirs(cache_dir)
-	with open(os.path.join(args.data_root, 'coco91tohico80.json'), 'r') as f:
+	with open(os.path.join(args.data_root, 'coco80tohico80.json'), 'r') as f:
 		coco2hico = json.load(f)
 
 	dataset = HICODet(
