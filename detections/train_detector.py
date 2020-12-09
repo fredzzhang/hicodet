@@ -11,12 +11,14 @@ import os
 import math
 import json
 import copy
+import time
 import torch
 import bisect
 import argparse
 import torchvision
 import numpy as np
 
+from tqdm import tqdm
 from PIL import Image
 from itertools import repeat, chain
 from collections import defaultdict
@@ -27,14 +29,73 @@ import pocket
 from pocket.data import HICODet
 
 class DetectorEngine(pocket.core.LearningEngine):
-    def __init__(self, net, train_loader, **kwargs):
+    def __init__(self, net, train_loader, val_loader, **kwargs):
         super().__init__(net, None, train_loader, **kwargs)
+        self._val_loader = val_loader
+        self.timer = pocket.utils.HandyTimer(1)
+
     def _on_each_iteration(self):
         self._state.output = self._state.net(*self._state.inputs, targets=self._state.targets)
         self._state.loss = sum(loss for loss in self._state.output.values())
         self._state.optimizer.zero_grad()
         self._state.loss.backward()
         self._state.optimizer.step()
+
+    def _on_end_epoch(self):
+        with self.timer:
+            ap, max_rec = self.validate()
+        print("\n=> Validation (+{:.2f})\n"
+            "Epoch: {} | mAP: {:.4f}, mRec: {:.4f} | Time: {:.2f}s\n".format(
+                time.time() - self._dawn, self._state.epoch,
+                ap.mean().item(), max_rec.mean().item(), self.timer[0]
+            ))
+        super()._on_end_epoch()
+
+    def validate(self, min_iou=0.5, nms_thresh=0.5):
+        num_gt = torch.zeros(80)
+        associate = pocket.utils.BoxAssociation(min_iou=min_iou)
+        meter = pocket.utils.DetectionAPMeter(
+            80, algorithm='INT', nproc=10
+        )
+        self._state.net.eval()
+        for batch in tqdm(self._val_loader):
+            inputs = pocket.ops.relocate_to_cuda(batch[0])
+            output = self._state.net(inputs)
+            assert len(output) == 1, "The batch size should be one"
+            # Relocate back to cpu
+            output = pocket.ops.relocate_to_cpu(output[0])
+            target = batch[1][0]
+            # Do NMS on ground truth boxes
+            # NOTE This is because certain objects appear multiple times in
+            # different pairs and different interactions
+            keep_gt_idx = torchvision.ops.boxes.batched_nms(
+                target['boxes'], torch.ones_like[target['labels']].float(),
+                target['labels'], nms_thresh
+            )
+            gt_boxes = target['boxes'][keep_gt_idx].view(-1, 4)
+            gt_classes = target['labels'][keep_gt_idx].view(-1)
+            # Update the number of ground truth instances
+            for c in gt_classes:
+                num_gt[c] += 1
+            # Associate detections with ground truth
+            binary_labels = torch.zeros_like(output['scores'])
+            unique_obj = output['labels'].unique()
+            for obj_idx in unique_obj:
+                det_idx = torch.nonzero(output['labels'] == obj_idx).squeeze(1)
+                gt_idx = torch.nonzero(gt_classes == obj_idx).squeeze(1)
+                if len(gt_idx) == 0:
+                    continue
+                binary_labels[det_idx] = associate(
+                    gt_boxes[gt_idx].view(-1, 4),
+                    output['boxes'][det_idx].view(-1, 4),
+                    output['scores'][det_idx].view(-1)
+                )
+
+            meter.append(output['scores'], output['labels'], binary_labels)
+
+        meter.num_gt = num_gt.tolist()
+        ap = meter.eval()
+        return ap, meter.max_rec
 
 class HICODetObject(Dataset):
     def __init__(self, dataset, data_root, nms_thresh=0.5):
@@ -179,25 +240,36 @@ def main(args):
     torch.cuda.set_device(0)
     torch.manual_seed(args.random_seed)
 
-    dataset = HICODetObject(HICODet(
+    trainset = HICODetObject(HICODet(
         root=os.path.join(args.data_root, "hico_20160224_det/images/train2015"),
         anno_file=os.path.join(args.data_root, "instances_train2015.json"),
         transform=torchvision.transforms.ToTensor(),
         target_transform=pocket.ops.ToTensor(input_format='dict')
     ), data_root=args.data_root)
-    sampler = torch.utils.data.RandomSampler(dataset)
-    group_ids = create_aspect_ratio_groups(dataset, k=args.aspect_ratio_group_factor)
+    sampler = torch.utils.data.RandomSampler(trainset)
+    group_ids = create_aspect_ratio_groups(trainset, k=args.aspect_ratio_group_factor)
     batch_sampler = GroupedBatchSampler(sampler, group_ids, args.batch_size)
     train_loader = DataLoader(
-        dataset=dataset, batch_sampler=batch_sampler,
+        dataset=trainset, batch_sampler=batch_sampler,
         num_workers=4, collate_fn=collate_fn,
+    )
+
+    valset = HICODetObject(HICODet(
+        root=os.path.join(args.data_root, "hico_20160224_det/images/test2015"),
+        anno_file=os.path.join(args.data_root, "instances_test2015.json"),
+        transform=torchvision.transforms.ToTensor(),
+        target_transform=pocket.ops.ToTensor(input_format='dict')
+    ), data_root=args.data_root)
+    val_loader = DataLoader(
+        dataset=valset, batch_size=1, shuffle=False,
+        num_workers=4, collate_fn=collate_fn
     )
 
     net = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     net.cuda()
     
     engine = DetectorEngine(
-        net, train_loader,
+        net, train_loader, val_loader,
         print_interval=args.print_interval,
         cache_dir=args.cache_dir,
         optim_params=dict(
