@@ -12,9 +12,10 @@ Utilities for the human-object interaction detection dataset [HICO-DET](http://w
 - [x] [Fine-tuning object detectors](https://github.com/fredzzhang/hicodet/tree/main/detections#fine-tune-the-detector-on-hico-det)
 
 ## Installation Instructions
-1. Download the [HICO-DET dataset](https://drive.google.com/open?id=1QZcJmGVlF9f4h-XLWe9Gkmnmj2z1gSnk) and decompress it at the root directory of the repo
-2. Install the lightweight deep learning library [Pocket](https://github.com/fredzzhang/pocket)
-3. You are good to go!
+1. Download the repo with `git clone https://github.com/fredzzhang/hicodet.git`
+2. Download the [HICO-DET dataset](https://drive.google.com/open?id=1QZcJmGVlF9f4h-XLWe9Gkmnmj2z1gSnk) and decompress it to the root directory of the repo
+3. Install the lightweight deep learning library [Pocket](https://github.com/fredzzhang/pocket)
+4. Make sure the environment you created for Pocket is activated. You are good to go!
 
 ## License
 
