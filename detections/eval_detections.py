@@ -160,13 +160,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Dataset size analysis")
     parser.add_argument('--detection-root', required=True, type=str)
     parser.add_argument('--data-root', type=str, default='../')
-    parser.add_argument('--human-thresh', default=0.5, type=float,
+    parser.add_argument('--human-thresh', default=0.05, type=float,
                         help="Threshold used to filter low scoring human detections")
-    parser.add_argument('--max-human', default=10, type=int,
+    parser.add_argument('--max-human', default=50, type=int,
                         help="Maximum number of human instances to keep in an image")
-    parser.add_argument('--object-thresh', default=0.5, type=float,
+    parser.add_argument('--object-thresh', default=0.05, type=float,
                         help="Threshold used to filter low scoring object detections")
-    parser.add_argument('--max-object', default=10, type=int,
+    parser.add_argument('--max-object', default=50, type=int,
                         help="Maximum number of (pure) object instances to keep in an image")
     parser.add_argument('--nms-thresh', default=0.5, type=float,
                         help="Threshold for non-maximum suppression")
