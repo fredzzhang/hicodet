@@ -51,6 +51,7 @@ class DetectorEngine(pocket.core.LearningEngine):
             ))
         super()._on_end_epoch()
 
+    @torch.no_grad()
     def validate(self, min_iou=0.5, nms_thresh=0.5):
         num_gt = torch.zeros(80)
         associate = pocket.utils.BoxAssociation(min_iou=min_iou)
@@ -69,14 +70,15 @@ class DetectorEngine(pocket.core.LearningEngine):
             # NOTE This is because certain objects appear multiple times in
             # different pairs and different interactions
             keep_gt_idx = torchvision.ops.boxes.batched_nms(
-                target['boxes'], torch.ones_like[target['labels']].float(),
+                target['boxes'], torch.ones_like(target['labels']).float(),
                 target['labels'], nms_thresh
             )
             gt_boxes = target['boxes'][keep_gt_idx].view(-1, 4)
             gt_classes = target['labels'][keep_gt_idx].view(-1)
             # Update the number of ground truth instances
+            # Convert the object index to zero based
             for c in gt_classes:
-                num_gt[c] += 1
+                num_gt[c - 1] += 1
             # Associate detections with ground truth
             binary_labels = torch.zeros_like(output['scores'])
             unique_obj = output['labels'].unique()
@@ -91,7 +93,7 @@ class DetectorEngine(pocket.core.LearningEngine):
                     output['scores'][det_idx].view(-1)
                 )
 
-            meter.append(output['scores'], output['labels'], binary_labels)
+            meter.append(output['scores'], output['labels'] - 1, binary_labels)
 
         meter.num_gt = num_gt.tolist()
         ap = meter.eval()
@@ -265,7 +267,7 @@ def main(args):
         num_workers=4, collate_fn=collate_fn
     )
 
-    net = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    net = pocket.models.fasterrcnn_resnet_fpn('resnet50', pretrained=True)
     net.cuda()
     
     engine = DetectorEngine(
@@ -292,11 +294,11 @@ if __name__ == '__main__':
     parser.add_argument('--data-root', type=str, default='../')
     parser.add_argument('--num-epochs', default=20, type=int)
     parser.add_argument('--random-seed', default=1, type=int)
-    parser.add_argument('--learning-rate', default=0.001, type=float)
+    parser.add_argument('--learning-rate', default=0.00025, type=float)
     parser.add_argument('--momentum', default=0.9, type=float)
-    parser.add_argument('--weight-decay', default=5e-4, type=float)
+    parser.add_argument('--weight-decay', default=1e-4, type=float)
     parser.add_argument('--batch-size', default=2, type=int)
-    parser.add_argument('--milestones', nargs='+', default=[10, 16])
+    parser.add_argument('--milestones', nargs='+', default=[12,])
     parser.add_argument('--lr-decay', default=0.1, type=float)
     parser.add_argument('--aspect-ratio-group-factor', default=3, type=int)
     parser.add_argument('--print-interval', default=2000, type=int)
