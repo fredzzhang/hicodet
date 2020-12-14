@@ -169,7 +169,7 @@ if __name__ == "__main__":
                         help="Threshold used to filter low scoring object detections")
     parser.add_argument('--max-object', default=50, type=int,
                         help="Maximum number of (pure) object instances to keep in an image")
-    parser.add_argument('--nms-thresh', default=0.5, type=float,
+    parser.add_argument('--nms-thresh', default=0.05, type=float,
                         help="Threshold for non-maximum suppression")
     args = parser.parse_args()
 
