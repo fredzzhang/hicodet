@@ -137,11 +137,11 @@ def compute_map(
 
 def main(args):
     
-    dataset = HICODet(
+    testset = HICODet(
         root=os.path.join(args.data_root,
-            "hico_20160224_det/images/{}".format(args.partition)),
+            "hico_20160224_det/images/test2015"),
         anno_file=os.path.join(args.data_root,
-            "instances_{}.json".format(args.partition))
+            "instances_test2015.json")
     )
 
     h_score_thresh = args.human_thresh
@@ -151,7 +151,7 @@ def main(args):
     max_object = args.max_object
 
     compute_map(
-        dataset, args.detection_root,
+        testset, args.detection_root,
         h_score_thresh, o_score_thresh, nms_thresh,
         max_human, max_object
     )
@@ -159,7 +159,6 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Dataset size analysis")
     parser.add_argument('--detection-root', required=True, type=str)
-    parser.add_argument('--partition', type=str, default='test2015')
     parser.add_argument('--data-root', type=str, default='../')
     parser.add_argument('--human-thresh', default=0.05, type=float,
                         help="Threshold used to filter low scoring human detections")
@@ -169,7 +168,7 @@ if __name__ == "__main__":
                         help="Threshold used to filter low scoring object detections")
     parser.add_argument('--max-object', default=50, type=int,
                         help="Maximum number of (pure) object instances to keep in an image")
-    parser.add_argument('--nms-thresh', default=0.05, type=float,
+    parser.add_argument('--nms-thresh', default=0.5, type=float,
                         help="Threshold for non-maximum suppression")
     args = parser.parse_args()
 
