@@ -27,6 +27,7 @@ from torch.utils.data.sampler import Sampler, BatchSampler
 
 import pocket
 from pocket.data import HICODet
+from pocket.ops import RandomHorizontalFlip, to_tensor
 
 class DetectorEngine(pocket.core.LearningEngine):
     def __init__(self, net, train_loader, val_loader, **kwargs):
@@ -100,14 +101,13 @@ class DetectorEngine(pocket.core.LearningEngine):
         return ap, meter.max_rec
 
 class HICODetObject(Dataset):
-    def __init__(self, dataset, data_root, nms_thresh=0.5):
+    def __init__(self, dataset, data_root, nms_thresh=0.5, random_flip=False):
         self.dataset = dataset
         self.nms_thresh = nms_thresh
-        with open(os.path.join(
-            args.data_root, 'coco80tohico80.json'),
-        'r') as f:
+        with open(os.path.join(data_root, 'coco80tohico80.json'), 'r') as f:
             corr = json.load(f)
         self.hico2coco91 = dict(zip(corr.values(), corr.keys()))
+        self.transform = RandomHorizontalFlip() if random_flip else None
     def __len__(self):
         return len(self.dataset)
     def __getitem__(self, idx):
@@ -125,7 +125,10 @@ class HICODetObject(Dataset):
         ])
         # Convert HICODet object indices to COCO indices
         converted_labels = torch.tensor([int(self.hico2coco91[i.item()]) for i in labels])
-        
+        # Apply transform
+        if self.transform is not None:
+            image, boxes = self.transform(image, boxes)
+        image = to_tensor(image, input_format='pil')
         return [image], [dict(boxes=boxes, labels=converted_labels)]
 
 def collate_fn(batch):
@@ -245,9 +248,8 @@ def main(args):
     trainset = HICODetObject(HICODet(
         root=os.path.join(args.data_root, "hico_20160224_det/images/train2015"),
         anno_file=os.path.join(args.data_root, "instances_train2015.json"),
-        transform=torchvision.transforms.ToTensor(),
         target_transform=pocket.ops.ToTensor(input_format='dict')
-    ), data_root=args.data_root)
+    ), data_root=args.data_root, random_flip=True)
     sampler = torch.utils.data.RandomSampler(trainset)
     group_ids = create_aspect_ratio_groups(trainset, k=args.aspect_ratio_group_factor)
     batch_sampler = GroupedBatchSampler(sampler, group_ids, args.batch_size)
@@ -259,7 +261,6 @@ def main(args):
     valset = HICODetObject(HICODet(
         root=os.path.join(args.data_root, "hico_20160224_det/images/test2015"),
         anno_file=os.path.join(args.data_root, "instances_test2015.json"),
-        transform=torchvision.transforms.ToTensor(),
         target_transform=pocket.ops.ToTensor(input_format='dict')
     ), data_root=args.data_root)
     val_loader = DataLoader(
