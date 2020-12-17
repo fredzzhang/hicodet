@@ -36,7 +36,7 @@ Evaluate the mAP of the detections against the ground truth object detections of
 ## Fine-tune the detector on HICO-DET
 
 ```bash
-python train_detector.py
+CUDA_VISIBLE_DEVICES=0 python train_detector.py
 ```
 
-Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Run `python train_detector.py --help` for more options regarding the hyper-parameters.
+Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Note that setting the environmental variable `CUDA_VISIBLE_DEVICES` is necessary and should __NOT__ be omitted (Refer to [#7](https://github.com/fredzzhang/hicodet/issues/7)). Run `python train_detector.py --help` for more options regarding the hyper-parameters.
