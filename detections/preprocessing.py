@@ -81,7 +81,7 @@ if __name__ == '__main__':
 	parser.add_argument('--data-root', type=str, default='../')
 	parser.add_argument('--cache-dir', type=str, default='./')
 	parser.add_argument('--nms-thresh', type=float, default=0.5)
-	parser.add_argument('--score-thresh', type=float, default=0.2)
+	parser.add_argument('--score-thresh', type=float, default=0.05)
 	parser.add_argument('--num-detections-per-image', type=int, default=100)
 	parser.add_argument('--ckpt-path', type=str, default='',
 			help="Path to a checkpoint that contains the weights for a model")
