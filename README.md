@@ -13,7 +13,17 @@ Utilities for the human-object interaction detection dataset [HICO-DET](http://w
 
 ## Installation Instructions
 1. Download the repo with `git clone https://github.com/fredzzhang/hicodet.git`
-2. Download the [HICO-DET dataset](https://drive.google.com/open?id=1QZcJmGVlF9f4h-XLWe9Gkmnmj2z1gSnk) and decompress it to the root directory of the repo
+2. Prepare the [HICO-DET dataset](https://drive.google.com/open?id=1QZcJmGVlF9f4h-XLWe9Gkmnmj2z1gSnk)
+    1. If you have not downloaded the dataset before, run the following script
+    ```bash
+    cd /path/to/hicodet
+    bash download.sh
+    ```
+    2. If you have previously downloaded the dataset, simply create a soft link
+    ```bash
+    cd /path/to/hicodet
+    ln -s /path/to/hico_20160224_det ./hico_20160224_det
+    ```
 3. Install the lightweight deep learning library [Pocket](https://github.com/fredzzhang/pocket)
 4. Make sure the environment you created for Pocket is activated. You are good to go!
 
