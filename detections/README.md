@@ -39,7 +39,7 @@ Evaluate the mAP of the detections against the ground truth object detections of
 CUDA_VISIBLE_DEVICES=0 python train_detector.py
 ```
 
-Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Note that setting the environmental variable `CUDA_VISIBLE_DEVICES` is necessary and should __NOT__ be omitted (Refer to [#7](https://github.com/fredzzhang/hicodet/issues/7)). Run `python train_detector.py --help` for more options regarding the hyper-parameters. To download the checkpoint of our fine-tuned detector, run the following script. The downloaded file is available under `./checkpoints`
+Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Note that setting the environmental variable `CUDA_VISIBLE_DEVICES` is necessary and should __NOT__ be omitted (Refer to [#7](https://github.com/fredzzhang/hicodet/issues/7)). Run `python train_detector.py --help` for more options regarding the hyper-parameters. To download the checkpoint of our fine-tuned detector, run the following script. The downloaded file is available under `./checkpoints`, which can be used directly to generate detections (see previous sections).
 
 ```bash
 bash download_checkpoint.sh
