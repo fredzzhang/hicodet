@@ -1,15 +1,15 @@
 # HICO-DET
-Utilities for the human-object interaction detection dataset [HICO-DET](http://www-personal.umich.edu/~ywchao/hico/), by [Chao et al. WACV 2018](https://arxiv.org/pdf/1702.05448.pdf)
+Utilities for the human-object interaction detection dataset [HICO-DET](http://www-personal.umich.edu/~ywchao/hico/)
 
 ## Supported Utilities
 
 - [x] [A command-line style dataset navigator](https://github.com/fredzzhang/hicodet/tree/main/utilities#dataset-navigator)
 - [x] [Large-scale visualisation in web page](https://github.com/fredzzhang/hicodet/tree/main/utilities#generate-and-visaulise-box-pairs-in-large-scales)
-- [x] [Object detection using Faster R-CNN](https://github.com/fredzzhang/hicodet/tree/main/detections#generate-detections-using-faster-r-cnn)
-- [x] [Ground truth object detections](https://github.com/fredzzhang/hicodet/tree/main/detections#generate-ground-truth-detections)
-- [x] [Object detection visualisation](https://github.com/fredzzhang/hicodet/tree/main/detections#visualise-detections)
-- [x] [Object detection evaluation](https://github.com/fredzzhang/hicodet/tree/main/detections#evaluate-detections)
-- [x] [Fine-tuning object detectors](https://github.com/fredzzhang/hicodet/tree/main/detections#fine-tune-the-detector-on-hico-det)
+- [x] [Generate object detections with Faster R-CNN](https://github.com/fredzzhang/hicodet/tree/main/detections#generate-detections-using-faster-r-cnn)
+- [x] [Generate ground truth object detections](https://github.com/fredzzhang/hicodet/tree/main/detections#generate-ground-truth-detections)
+- [x] [Visualise detected objects](https://github.com/fredzzhang/hicodet/tree/main/detections#visualise-detections)
+- [x] [Evaluate object detections](https://github.com/fredzzhang/hicodet/tree/main/detections#evaluate-detections)
+- [x] [Fine-tune Faster R-CNN on HICO-DET](https://github.com/fredzzhang/hicodet/tree/main/detections#fine-tune-the-detector-on-hico-det)
 
 ## Installation Instructions
 1. Download the repo with `git clone https://github.com/fredzzhang/hicodet.git`
