@@ -1,10 +1,11 @@
 #!/bin/bash
 
 FILE=hico_20160224_det.tar.gz
+EXTR=hico_20160224_det
 ID=1QZcJmGVlF9f4h-XLWe9Gkmnmj2z1gSnk
 
-if [ -f $FILE ]; then
-  echo "$FILE already exists."
+if [ -d $EXTR ]; then
+  echo "$EXTR already exists."
   exit 0
 fi
 
@@ -15,5 +16,6 @@ wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download
 echo "Extracting..."
 
 tar zxf $FILE
+rm $FILE
 
 echo "Done."
