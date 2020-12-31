@@ -212,25 +212,13 @@ class GroupedBatchSampler(BatchSampler):
     def __len__(self):
         return len(self.sampler) // self.batch_size    
 
-def compute_aspect_ratios(dataset):
-    aspect_ratios = []
-    for i in range(len(dataset)):
-        im = Image.open(os.path.join(
-            dataset.dataset._root,
-            dataset.dataset.filename(i)
-        ))
-        width, height = im.size
-        aspect_ratios.append(float(width) / float(height))
-    return aspect_ratios
-
 def _quantize(x, bins):
     bins = copy.deepcopy(bins)
     bins = sorted(bins)
     quantized = list(map(lambda y: bisect.bisect_right(bins, y), x))
     return quantized
 
-def create_aspect_ratio_groups(dataset, k=0):
-    aspect_ratios = compute_aspect_ratios(dataset)
+def create_aspect_ratio_groups(aspect_ratios, k=0):
     bins = (2 ** np.linspace(-1, 1, 2 * k + 1)).tolist() if k > 0 else [1.0]
     groups = _quantize(aspect_ratios, bins)
     # count number of elements per group
@@ -256,19 +244,26 @@ def main(args):
         target_transform=pocket.ops.ToTensor(input_format='dict')
     ), data_root=args.data_root)
 
+    def div(a, b):
+        return a / b
     use_train2015 = 'train2015' in args.training_data
     use_test2015 = 'test2015' in args.training_data
     if len(args.training_data) == 1 and use_train2015:
         trainset = train2015
+        aspect_ratios = [div(*train2015.dataset.image_size(i)) for i in range(len(train2015))]
     elif len(args.training_data) == 1 and use_test2015:
         trainset = test2015
+        aspect_ratios = [div(*test2015.dataset.image_size(i)) for i in range(len(test2015))]
     elif len(args.training_data) == 2 and use_train2015 and use_train2015:
         trainset = DatasetConcat(train2015, test2015)
+        aspect_ratios = [
+            div(*train2015.dataset.image_size(i)) for i in range(len(train2015))
+        ] + [div(*test2015.dataset.image_size(i)) for i in range(len(test2015))]
     else:
         raise ValueError("Unknown dataset partition in ", args.training_data)
 
     sampler = torch.utils.data.RandomSampler(trainset)
-    group_ids = create_aspect_ratio_groups(trainset, k=args.aspect_ratio_group_factor)
+    group_ids = create_aspect_ratio_groups(aspect_ratios, k=args.aspect_ratio_group_factor)
     batch_sampler = GroupedBatchSampler(sampler, group_ids, args.batch_size)
     train_loader = DataLoader(
         dataset=trainset, batch_sampler=batch_sampler,
