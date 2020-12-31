@@ -26,7 +26,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import Sampler, BatchSampler
 
 import pocket
-from pocket.data import HICODet
+from pocket.data import HICODet, DatasetConcat
 from pocket.ops import RandomHorizontalFlip, to_tensor
 
 class DetectorEngine(pocket.core.LearningEngine):
@@ -245,11 +245,28 @@ def main(args):
     torch.cuda.set_device(0)
     torch.manual_seed(args.random_seed)
 
-    trainset = HICODetObject(HICODet(
+    train2015 = HICODetObject(HICODet(
         root=os.path.join(args.data_root, "hico_20160224_det/images/train2015"),
         anno_file=os.path.join(args.data_root, "instances_train2015.json"),
         target_transform=pocket.ops.ToTensor(input_format='dict')
     ), data_root=args.data_root, random_flip=True)
+    test2015 = HICODetObject(HICODet(
+        root=os.path.join(args.data_root, "hico_20160224_det/images/test2015"),
+        anno_file=os.path.join(args.data_root, "instances_test2015.json"),
+        target_transform=pocket.ops.ToTensor(input_format='dict')
+    ), data_root=args.data_root)
+
+    use_train2015 = 'train2015' in args.training_data
+    use_test2015 = 'test2015' in args.training_data
+    if len(args.training_data) == 1 and use_train2015:
+        trainset = train2015
+    elif len(args.training_data) == 1 and use_test2015:
+        trainset = test2015
+    elif len(args.training_data) == 2 and use_train2015 and use_train2015:
+        trainset = DatasetConcat(train2015, test2015)
+    else:
+        raise ValueError("Unknown dataset partition in ", args.training_data)
+
     sampler = torch.utils.data.RandomSampler(trainset)
     group_ids = create_aspect_ratio_groups(trainset, k=args.aspect_ratio_group_factor)
     batch_sampler = GroupedBatchSampler(sampler, group_ids, args.batch_size)
@@ -258,13 +275,8 @@ def main(args):
         num_workers=4, collate_fn=collate_fn,
     )
 
-    valset = HICODetObject(HICODet(
-        root=os.path.join(args.data_root, "hico_20160224_det/images/test2015"),
-        anno_file=os.path.join(args.data_root, "instances_test2015.json"),
-        target_transform=pocket.ops.ToTensor(input_format='dict')
-    ), data_root=args.data_root)
     val_loader = DataLoader(
-        dataset=valset, batch_size=1, shuffle=False,
+        dataset=test2015, batch_size=1, shuffle=False,
         num_workers=4, collate_fn=collate_fn
     )
 
@@ -293,6 +305,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Fine-tune Faster R-CNN on HICO-DET")
     parser.add_argument('--data-root', type=str, default='../')
+    parser.add_argument('--training-data', nargs='+', default=['train2015',], type=str)
     parser.add_argument('--num-epochs', default=15, type=int)
     parser.add_argument('--random-seed', default=1, type=int)
     parser.add_argument('--learning-rate', default=0.00025, type=float)
