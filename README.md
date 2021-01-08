@@ -27,6 +27,9 @@ Utilities for the human-object interaction detection dataset [HICO-DET](http://w
 3. Install the lightweight deep learning library [Pocket](https://github.com/fredzzhang/pocket)
 4. Make sure the environment you created for Pocket is activated. You are good to go!
 
+## Dataset Class
+The implementation of the dataset class can be found in `hicodet.py`. Refer to the [documentation](./DOC.md) to find out more about its usage. For convenience, the dataset class has been included in the [Pocket](https://github.com/fredzzhang/pocket) library, accessible via `pocket.data.HICODet`.
+
 ## License
 
 [MIT License](./LICENSE)
