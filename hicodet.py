@@ -103,10 +103,10 @@ class HICODet(ImageDataset):
 
     def __repr__(self) -> str:
         """Return the executable string representation"""
-        reprstr = self.__class__.__name__ + '(root=\"' + repr(self._root)
-        reprstr += '\", anno_file=\"'
+        reprstr = self.__class__.__name__ + '(root=' + repr(self._root)
+        reprstr += ', anno_file='
         reprstr += repr(self._anno_file)
-        reprstr += '\")'
+        reprstr += ')'
         # Ignore the optional arguments
         return reprstr
 
