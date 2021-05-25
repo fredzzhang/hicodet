@@ -608,5 +608,12 @@
 |0: adjust|(59: snowboard, 60: skis), (68: tie)|Training examples dominated by _tie_|
 |2: block|(33: frisbee), (62: sports_ball)|Low AP for *blocking sports_ball*|
 |4: board|(0: airplane, 11: boat, 16: bus, 73: train), (18: car)|Low AP for _boat_ and _car_|
-|7: buy|(1: apple, 3: banana, 29: donus, 46: orange, 50: pizza)|Ambiguous action. Decent AP for _orange_|
-|8: carry|(28: dog, 56: sheep, 66: teddy_bear), (13: bottle, 26: cup), <br> (2: backpack, 36: handbag), (40: kite, 76: umbrella) <br> (39: keyboard, 58: skateboard, 59: skis, 60: snowboard, 65: surfboard) <br> (4: baseball_bat, 67: tennis_racket), <br> (3: banana, 12: book, 19: carrot, 21: cell_phone, 38: hot_dog, 29: donut, <br>17: cake, 50: pizza, 58: sandwich, 62: sports_ball, 56: potted_plant) <br> (9: bicycle, 49: person, 22: chair, 24: couch, 65: suitcase)|
+|8: carry|(28: dog, 56: sheep, 66: teddy_bear), (13: bottle, 26: cup), (2: backpack, 36: handbag), (40: kite, 76: umbrella) <br> (39: keyboard, 58: skateboard, 59: skis, 60: snowboard, 65: surfboard), (4: baseball_bat, 67: tennis_racket), <br> (3: banana, 12: book, 19: carrot, 21: cell_phone, 38: hot_dog, 29: donut, 17: cake, 50: pizza, 58: sandwich, 62: sports_ball, 56: potted_plant) <br> (9: bicycle, 49: person, 22: chair, 24: couch, 65: suitcase)|
+|14: cook|(19: carrot), (38: hot_dog, 50: pizza, 54: sandwich)|Cooking carrots takes place in a pot|
+|15: cut|(1: apple, 3: banana, 15: broccoli, 19: carrot 38: hot_dog, 46: orange), (17: cake, 54: pizza, 68: sandwich), (68: tie)|Size of object|
+|23: eat|(1: apple, 15: broccoli, 46: orange), (3: banana, 19: carrot, 38: hot_dog), (17: cake, 29: donut, 50: pizza, 54: sandwich)|Size and shape of object|
+|25: exit|(16: bus, 73: train), (0: airplane, 11: boat)|Visual similarity|
+|26: feed|(10: bird, 20: cat, 25: cow, 28: dog, 37: horse, 6: bera, 30: elephant, 34: giraffe, 79: zebra), (56: sheep)|Based on APs|
+|30: fly|(0: airplane), (40: kite)|
+|33: groom|(28: dog), (37: horse)|
+|34: herd|(25: cow), (56: sheep)|Based on APs|
