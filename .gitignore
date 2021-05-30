@@ -13,3 +13,6 @@ checkpoints
 # Detections
 detections/train*
 detections/test*
+
+# MacOS
+.DS_Store
