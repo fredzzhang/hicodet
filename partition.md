@@ -617,3 +617,4 @@
 |30: fly|(0: airplane), (40: kite)|
 |33: groom|(28: dog), (37: horse)|
 |34: herd|(25: cow), (56: sheep)|Based on APs|
+|36: hold|(77: vase), (47: oven, 52: refrigerator), (58: skateboard, 59: skis, 60: snowboard, 65: surfboard), (39: keyboard, 42: laptop), (49: person), (22: chair), (2: backpack, 36: handbag), (21: cell_phone, 45: mouse, 53: remote), (25: cow, 56: sheep), (63: stop_sign), (35: hair_drier), (14: bowl), (50: pizza, 17: cake, 54: sandwich, 29: donut), (19: carrot, 3: banana, 38: hot_dog), (68: tie), (30: elephant, 37: horse, 79: zebra), (40: kite), (10: bird), (20: cat, 28: dog, 66: teddy_bear), (41: knife, 61: spoon, 55: scissors, 32: fork, 71: toothbrush), (69: toaster), (23: clock), (13: bottle, 26: cup, 78: wine_glass), (15: broccoli), (51: potted_plant), (9: bicycle, 44: motorcycle), (5: baseball_glove), (62: sports_ball), (1: apple, 46: orange), (12: book), (4: baseball_bat, 67: tennis_racket), (33: frisbee), (76: umbrella)|
