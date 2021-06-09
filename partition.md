@@ -618,3 +618,30 @@
 |33: groom|(28: dog), (37: horse)|
 |34: herd|(25: cow), (56: sheep)|Based on APs|
 |36: hold|(63: stop_sign),<br/> (12: book), (76: umbrella), (62: sports_ball, 33: frisbee), (68: tie), (10: bird), (40: kite), (5: baseball_glove), (23: clock)<br/> (47: oven, 52: refrigerator), (58: skateboard, 59: skis, 60: snowboard, 65: surfboard), (49: person),<br/> (39: keyboard, 42: laptop), (2: backpack, 36: handbag), (21: cell_phone, 45: mouse, 53: remote), <br/> (50: pizza, 17: cake, 54: sandwich, 29: donut), (19: carrot, 3: banana, 38: hot_dog), (69: toaster)<br/> (30: elephant, 37: horse, 25: cow, 56: sheep, 79: zebra, 22: chair), (20: cat, 28: dog, 66: teddy_bear), <br/> (41: knife, 61: spoon, 55: scissors, 32: fork, 71: toothbrush), (13: bottle, 26: cup, 14: bowl, 78: wine_glass, 35: hair_drier), <br/> (9: bicycle, 44: motorcycle), (1: apple, 46: orange, 15: broccoli), (4: baseball_bat, 67: tennis_racket), (77: vase, 51: potted_plant)|
+|41: inspect|(0: airplane, 9: bicycle, 11: boat, 13: bottle, 16: bus, 18: car, 28: dog, 44: motorcycle, 2: backpack, 3: banana, 8: bench, 26: cup, 31: fire_hydrant, 36: handbag, 47: oven, 59: skis, 65: surfboard, 67: tennis_racket, 74: truck), (68: tie), (1: apple, 46: orange), (40: kite), (62: sports_ball)|
+|43: jump|(9: bicycle, 18: car, 37: horse, 44: motorcycle), (58: skateboard, 59: skis, 60: snowboard, 65: surfboard), (11: boat)|
+|45: kiss|(25: cow, 37: horse, 49: person, 56: sheep, 30: elephant, 34: giraffe), (20: cat, 28: dog, 66: teddy_bear)|
+|47: launch|(11: boat), (40: kite)|
+|54: make|(17: cake, 29: donut, 38: hot_dog, 50: pizza, 54: sandwich), (77: vase)|
+|57: no_interaction|(0: airplane, 9: bicycle, 10: bird, 11: boat, 13: bottle, 16: bus, 18: car, 20: cat, 22: chair, 25: cow, 27: dining_table, 28: dog, 37: horse, 44: motorcycle, 49: person, 51: potted_plant, 56: sheep, 73: train, 75: tv, 1: apple, 3: banana, 5: baseball_glove, 6: bear, 7: bed, 12: book, 14: bowl, 15: broccoli, 19: carrot, 21: cell_phone, 23: clock, 26: cup, 29: donut, 30: elephant, 31: fire_hydrant, 32: fork, 33: frisbee, 34: giraffe, 35: hair_drier, 36: handbag, 38: hot_dog, 39: keyboard, 40: kite, 41: knife, 42: laptop, 43: microwave, 45: mouse, 46: orange, 47: oven, 48: parking_meter, 50: pizza, 52: refrigerator, 53: remote, 54: sandwich, 55: scissors, 59: skis, 61: spoon, 62: sports_ball, 63: stop_sign, 65: surfboard, 66: teddy_bear, 67: tennis_racket, 68: tie, 69: toaster, 70: toilet, 72: traffic_light, 74: truck, 76: umbrella, 77: vase, 78: wine_glass, 79: zebra), <br> (4: baseball_bat), (58: skateboard, 60: snowboard), (24: couch, 8: bench), (2: backpack), (57: sink), (17: cake), (64: suitcase), (71: toothbrush)|
+|58: open|(13: bottle, 2: backpack, 12: book, 42: laptop, 64: suitcase, 70: toilet), (76: umbrella), (55: scissors), (43: microwave, 47: oven, 52: refrigerator), (31: fire_hydrant)|
+|59: operate|(35: hair_drier), (43: microwave, 47: oven, 69: toaster)|
+|61: paint|(31: fire_hydrant), (77: vase)|
+|62: park|(9: bicycle, 44: motorcycle), (18: car)|
+|64: peel|(1: apple, 46: orange), (3: banana), (19: carrot)|
+|65: pet|(10: bird), (20: cat, 28: dog), (25: cow, 37: horse, 56: sheep, 30: elephant, 34: giraffe, 79: zebra)|
+|69: pour|(13: bottle), (26: cup)|
+|70: pull|(40: kite), (68: tie)|
+|71: push|(9: bicycle), (44: motorcycle)|
+|75: repair|(9: bicycle, 11: boat, 23: clock, 35: hair_drier, 45: mouse, 47: oven, 59: skis, 69: toaster, 74: truck, 76: umbrella), (70: toilet, 57: sink), (42: laptop, 75: tv, 21: cell_phone), (72: traffic_light, 48: parking_meter)|
+|76|(0: airplane, 11: boat, 16: bus, 18: car, 73: train, 74: truck), (9: bicycle, 25: cow, 37: horse, 44: motorcycle, 56: sheep, 30: elephant, 34: giraffe), (58: skateboard, 59: skis, 60: snowboard, 65: surfboard)|
+|78: run|(28: dog), (37: horse)|
+|82: set|(23: clock), (76: umbrella)|
+|90: spin|(33: frisbee), (62: sports_ball)|
+|98: straddle|(28: dog), (9: bicycle, 37: horse, 44: motorcycle)|
+|99: swing|(4: baseball_bat, 67: tennis_racket), (53: remote)|
+|104: throw|(4: baseball_bat), (33: frisbee, 62: sports_ball)|
+|105: tie|(11: boat), (68: tie)|
+|107: train|(28: dog), (37: horse)|
+|110: walk|(44: motorcycle), (25: cow, 28: dog, 56: sheep), (9: bicycle, 37: horse, 30: elephant)|
+|111: wash|(0: airplane, 9: bicycle, 11: boat, 16: bus, 18: car, 44: motorcycle, 73: train, 65: surfboard, 74: truck), (41: knife, 15: broccoli, 32: fork, 78: wine_glass, 14: bowl, 26: cup, 61: spoon, 71: toothbrush, 57: sink, 70: toilet, 46: orange, 1: apple, 19: carrot), (28: dog, 37: horse, 20: cat, 56: sheep, 30: elephant)|
