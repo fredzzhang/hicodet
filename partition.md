@@ -594,11 +594,11 @@
 |414|check parking_meter|`0.7351`, `1.0000`|`0.7336`, `1.0000`|`36`|
 |495|kick sports_ball|`0.7385`, `0.9535`|`0.6939`, `0.9651`|`299`|
 |597|pet zebra|`0.7470`, `1.0000`|`0.7943`, `1.0000`|`4`|
-|148|jump motorcycle|`0.7495`, `0.9744`|`0.7740`, `0.9744`|`124`|Noisy annotations __(N)__|
-|139|ride horse|`0.7766`, `0.9095`|`0.7790`, `0.9117`|`1526`|Missing annotations __(N)__|
+|148|jump motorcycle|`0.7495`, `0.9744`|`0.7740`, `0.9744`|`124`|Noisy annotations (__N__)|
+|139|ride horse|`0.7766`, `0.9095`|`0.7790`, `0.9117`|`1526`|Missing annotations (__N__)|
 |599|no_interaction zebra|`0.7801`, `1.0000`|`0.5773`, `1.0000`|`2`|
-|325|hug fire_hydrant|`0.7879`, `0.8333`|`0.6591`, `0.8333`|`1`|`1` example in training __(N)__|
-|381|lick knife|`0.8222`, `1.0000`|`0.5337`, `1.0000`|`5`|FN in image `771` __(Y)__|
+|325|hug fire_hydrant|`0.7879`, `0.8333`|`0.6591`, `0.8333`|`1`|`1` example in training (__N__)|
+|381|lick knife|`0.8222`, `1.0000`|`0.5337`, `1.0000`|`5`|FN in image `771` (__Y__)|
 |596|hold zebra|`0.8485`, `1.0000`|`0.6678`, `1.0000`|`2`|
 
 * Action class partitions
@@ -634,7 +634,7 @@
 |70: pull|(40: kite), (68: tie)|
 |71: push|(9: bicycle), (44: motorcycle)|
 |75: repair|(9: bicycle, 11: boat, 23: clock, 35: hair_drier, 45: mouse, 47: oven, 59: skis, 69: toaster, 74: truck, 76: umbrella), (70: toilet, 57: sink), (42: laptop, 75: tv, 21: cell_phone), (72: traffic_light, 48: parking_meter)|
-|76|(0: airplane, 11: boat, 16: bus, 18: car, 73: train, 74: truck), (9: bicycle, 25: cow, 37: horse, 44: motorcycle, 56: sheep, 30: elephant, 34: giraffe), (58: skateboard, 59: skis, 60: snowboard, 65: surfboard)|
+|76: ride|(0: airplane, 11: boat, 16: bus, 18: car, 73: train, 74: truck), (9: bicycle, 25: cow, 37: horse, 44: motorcycle, 56: sheep, 30: elephant, 34: giraffe), (58: skateboard, 59: skis, 60: snowboard, 65: surfboard)|
 |78: run|(28: dog), (37: horse)|
 |82: set|(23: clock), (76: umbrella)|
 |90: spin|(33: frisbee), (62: sports_ball)|
