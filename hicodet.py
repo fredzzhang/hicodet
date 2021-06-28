@@ -71,7 +71,7 @@ class HICODet(ImageDataset):
 
         self.num_object_cls = 80
         self.num_interation_cls = 600
-        self.num_action_cls = 117
+        self.num_action_cls = 210
         self._anno_file = anno_file
 
         # Load annotations
