@@ -33,13 +33,13 @@ python eval_detections.py --detection-root ./test2015
 
 Evaluate the mAP of the detections against the ground truth object detections of HICO-DET. Use the argument `--partition` to specify the subset to evaluate against. The default is `test2015`. Use the argument `--detection-root` to point to the directory where detection results are saved. Note that due to the multiple appearances of the same instance in different pairs, NMS will also be applied on the ground truth detections. This could cause some unforeseeable issues. Therefore, this evaluation is somewhat coarse and should only be used a diagnostic tool. Run `python eval_detections.py --help` to find out more about post-processing options.
 
-## Fine-tune the detector on HICO-DET
+## Fine-tune Faster R-CNN on HICO-DET
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python train_detector.py
+CUDA_VISIBLE_DEVICES=0 python faster_rcnn.py
 ```
 
-Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Note that setting the environmental variable `CUDA_VISIBLE_DEVICES` is necessary and should __NOT__ be omitted (Refer to [#7](https://github.com/fredzzhang/hicodet/issues/7)). Run `python train_detector.py --help` for more options regarding the hyper-parameters. To download the checkpoint of our fine-tuned detector, run the following script. The downloaded file is available under `./checkpoints`, which can be used directly to generate detections (see previous sections).
+Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Note that setting the environmental variable `CUDA_VISIBLE_DEVICES` is necessary and should __NOT__ be omitted (Refer to [#7](https://github.com/fredzzhang/hicodet/issues/7)). Run `python faster_rcnn.py --help` for more options regarding the hyper-parameters. To download the checkpoint of our fine-tuned detector, run the following script. The downloaded file is available under `./checkpoints`, which can be used directly to generate detections (see previous sections).
 
 ```bash
 bash download_checkpoint.sh
