@@ -2,16 +2,40 @@ import os
 import torch
 import pocket
 import argparse
+import torch.nn.functional as F
 
 from PIL import Image
 
 import sys
 sys.path.append('detr')
 
+from util import box_ops
 from models import build_model
 
+class PostProcess(torch.nn.Module):
+    @torch.no_grad()
+    def forward(self, outputs, target_sizes):
+        out_logits, out_bbox = outputs['pred_logits'], outputs['pred_boxes']
+
+        assert len(out_logits) == len(target_sizes)
+        assert target_sizes.shape[1] == 2
+
+        prob = F.softmax(out_logits, -1)
+        scores, labels = prob.max(-1)
+
+        # convert to [x0, y0, x1, y1] format
+        boxes = box_ops.box_cxcywh_to_xyxy(out_bbox)
+        # and from relative [0, 1] to absolute [0, height] coordinates
+        img_h, img_w = target_sizes.unbind(1)
+        scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)
+        boxes = boxes * scale_fct[:, None, :]
+
+        results = [{'scores': s, 'labels': l, 'boxes': b} for s, l, b in zip(scores, labels, boxes)]
+
+        return results
+
 def initialise(args):
-    detr, criterion, postprocessors = build_model(args)
+    detr, criterion, _ = build_model(args)
     if os.path.exists(args.pretrained):
         detr.load_state_dict(torch.load(args.pretrained)['model'])
     class_embed = torch.nn.Linear(256, 81, bias=True)
@@ -29,7 +53,7 @@ def initialise(args):
     ))
     detr.class_embed = class_embed
 
-    return detr, criterion, postprocessors
+    return detr, criterion, PostProcess()
 
 
 if __name__ == '__main__':
@@ -112,11 +136,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     detr, criterion, postprocessors = initialise(args)
-    image = Image.open('/Users/fredzzhang/Desktop/a.jpeg')
+    # image = Image.open('/Users/fredzzhang/Desktop/a.jpeg')
+    image = Image.open('/Users/fredzzhang/Developer/github/hicodet/hico_20160224_det/images/train2015/HICO_train2015_00000001.jpg')
     out = detr([pocket.ops.to_tensor(image, 'pil')])
 
-    scores = out['pred_logits'].softmax(-1)
-    boxes = postprocessors['bbox'](out['pred_bbox'])
-    print(boxes.shape)
-    print(scores.shape)
-    print(scores.argmax(-1))
+    scores, labels, boxes = postprocessors(out, torch.as_tensor([image.height, image.width]).unsqueeze(0))[0].values()
+    keep = torch.nonzero(torch.logical_and(scores >= 0.9, labels != 0)).squeeze()
+    print(scores[keep])
+    print(labels[keep])
+    pocket.utils.draw_boxes(image, boxes[keep])
+    image.show()
