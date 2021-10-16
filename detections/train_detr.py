@@ -116,5 +116,7 @@ if __name__ == '__main__':
     out = detr([pocket.ops.to_tensor(image, 'pil')])
 
     scores = out['pred_logits'].softmax(-1)
+    boxes = postprocessors['bbox'](out['pred_bbox'])
+    print(boxes.shape)
     print(scores.shape)
     print(scores.argmax(-1))
