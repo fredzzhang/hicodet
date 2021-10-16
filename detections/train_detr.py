@@ -1,25 +1,27 @@
 import os
 import torch
+import pocket
 import argparse
+
+from PIL import Image
 
 import sys
 sys.path.append('detr')
 
 from models import build_model
 
-def network_surgery(args):
-    detr = build_model(args)
+def initialise(args):
+    detr, criterion, postprocessors = build_model(args)
     if os.path.exists(args.pretrained):
-        detr.load_state_dict(torch.load(args.pretrained))
+        detr.load_state_dict(torch.load(args.pretrained)['model'])
     class_embed = torch.nn.Linear(256, 81, bias=True)
     w, b = detr.class_embed.state_dict().values()
     keep = [
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18,
-        19, 20, 21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36,
-        37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49, 50, 51, 52,
-        53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 70,
-        72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87,
-        88, 89, 90, 91
+        91, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20,
+        21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+        42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+        61, 62, 63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82,
+        84, 85, 86, 87, 88, 89, 90
     ]
     # Remove deprecated classes
     class_embed.load_state_dict(dict(
@@ -27,7 +29,7 @@ def network_surgery(args):
     ))
     detr.class_embed = class_embed
 
-    return detr
+    return detr, criterion, postprocessors
 
 
 if __name__ == '__main__':
@@ -84,8 +86,13 @@ if __name__ == '__main__':
     parser.add_argument('--giou_loss_coef', default=2, type=float)
     parser.add_argument('--eos_coef', default=0.1, type=float,
                         help="Relative classification weight of the no-object class")
+                            
+    # * Segmentation
+    parser.add_argument('--masks', action='store_true',
+                        help="Train segmentation head if the flag is provided")
 
     # dataset parameters
+    parser.add_argument('--dataset_file', default='coco')
     parser.add_argument('--output_dir', default='',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
@@ -104,4 +111,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # detr = network_surgery(args)
+    detr, criterion, postprocessors = initialise(args)
+    image = Image.open('/Users/fredzzhang/Desktop/a.jpeg')
+    out = detr([pocket.ops.to_tensor(image, 'pil')])
+
+    scores = out['pred_logits'].softmax(-1)
+    print(scores.shape)
+    print(scores.argmax(-1))
