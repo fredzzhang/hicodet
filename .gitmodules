@@ -1,0 +1,3 @@
+[submodule "detections/detr"]
+	path = detections/detr
+	url = https://github.com/fredzzhang/detr.git
