@@ -6,6 +6,7 @@ import argparse
 import torch.nn.functional as F
 
 from PIL import Image
+import torchvision
 from torchvision.ops.boxes import batched_nms
 from torch.utils.data import Dataset, DataLoader
 
@@ -178,19 +179,12 @@ if __name__ == '__main__':
     parser.add_argument('--set_cost_giou', default=2, type=float,
                         help="giou box coefficient in the matching cost")
     # * Loss coefficients
-    parser.add_argument('--mask_loss_coef', default=1, type=float)
-    parser.add_argument('--dice_loss_coef', default=1, type=float)
     parser.add_argument('--bbox_loss_coef', default=5, type=float)
     parser.add_argument('--giou_loss_coef', default=2, type=float)
     parser.add_argument('--eos_coef', default=0.1, type=float,
                         help="Relative classification weight of the no-object class")
-                            
-    # * Segmentation
-    parser.add_argument('--masks', action='store_true',
-                        help="Train segmentation head if the flag is provided")
 
     # dataset parameters
-    parser.add_argument('--dataset_file', default='coco')
     parser.add_argument('--partition', default='train2015')
     parser.add_argument('--data_root', default='../')
     parser.add_argument('--output_dir', default='',
@@ -212,13 +206,20 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     detr, criterion, postprocessors, dataset = initialise(args)
-    image = Image.open('/Users/fredzzhang/Desktop/cellphone.jpeg')
-    # image = Image.open('/Users/fredzzhang/Developer/github/hicodet/hico_20160224_det/images/train2015/HICO_train2015_00000001.jpg')
-    out = detr([pocket.ops.to_tensor(image, 'pil')])
+    detr.eval()
+    # image = Image.open('/Users/fredzzhang/Desktop/cellphone.jpeg')
+    # image = Image.open('/Users/fredzzhang/Developer/github/hicodet/hico_20160224_det/images/test2015/HICO_test2015_00000001.jpg')
 
-    scores, labels, boxes = postprocessors(out, torch.as_tensor([image.height, image.width]).unsqueeze(0))[0].values()
-    keep = torch.nonzero(torch.logical_and(scores >= 0.9, labels != 0)).squeeze()
-    print(scores[keep])
-    print(labels[keep])
-    pocket.utils.draw_boxes(image, boxes[keep])
+    img, tgt = dataset[0]
+    print(tgt)
+    # out = detr(img)
+
+    # scores, labels, boxes = postprocessors(out, tgt[0]['size'].unsqueeze(0))[0].values()
+    # keep = torch.nonzero(torch.logical_and(scores >= 0.9, labels != 0)).squeeze()
+    # print(scores[keep])
+    # print(labels[keep])
+
+    image = torchvision.transforms.ToPILImage()(img[0])
+    _, _, boxes = postprocessors(dict(pred_logits=torch.rand(1, 3, 81), pred_boxes=tgt[0]['boxes'].unsqueeze(0)), tgt[0]['size'].unsqueeze(0))[0].values()
+    pocket.utils.draw_boxes(image, boxes)
     image.show()
