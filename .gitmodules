@@ -1,3 +1,0 @@
-[submodule "detections/detr"]
-	path = detections/detr
-	url = https://github.com/facebookresearch/detr.git
