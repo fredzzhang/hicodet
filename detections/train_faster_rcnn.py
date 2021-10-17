@@ -19,7 +19,6 @@ import torchvision
 import numpy as np
 
 from tqdm import tqdm
-from PIL import Image
 from itertools import repeat, chain
 from collections import defaultdict
 from torch.utils.data import Dataset, DataLoader
