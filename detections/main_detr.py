@@ -28,6 +28,11 @@ class Engine(pocket.core.DistributedLearningEngine):
         super().__init__(net, criterion, dataloader, **kwargs)
         self.max_norm = max_norm
 
+    def _on_start_epoch(self):
+        self._state.epoch += 1
+        self._state.net.train()
+        self._train_loader.batch_sampler.sampler.set_epoch(self._state.epoch)
+
     def _on_each_iteration(self):
         self._state.output = self._state.net(*self._state.inputs)
         loss_dict = self._criterion(self._state.output, self._state.targets)
@@ -36,7 +41,7 @@ class Engine(pocket.core.DistributedLearningEngine):
         self._state.optimizer.zero_grad(set_to_none=True)
         self._state.loss.backward()
         if self.max_norm > 0:
-            torch.nn.utils.clip_grad_norm(self._state.net.parameters(), self.max_norm)
+            torch.nn.utils.clip_grad_norm_(self._state.net.parameters(), self.max_norm)
         self._state.optimizer.step()
 
 class HICODetObject(Dataset):
@@ -190,7 +195,7 @@ def main(rank, args):
 
     engine = Engine(
         model, criterion, dataloader,
-        max_norm=args.max_norm,
+        max_norm=args.clip_max_norm,
         print_interval=args.print_interval,
         cache_dir=args.output_dir
     )
