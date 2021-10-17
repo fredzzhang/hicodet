@@ -1,16 +1,48 @@
 import os
+import json
 import torch
 import pocket
 import argparse
 import torch.nn.functional as F
 
 from PIL import Image
+from torch.utils.data import Dataset, DataLoader
 
 import sys
 sys.path.append('detr')
 
 from util import box_ops
 from models import build_model
+import datasets.transforms as T
+
+class HICODetObject(Dataset):
+    def __init__(self, dataset, data_root, transforms, nms_thresh=0.5):
+        self.dataset = dataset
+        self.transforms = transforms
+        self.nms_thresh = nms_thresh
+        with open(os.path.join(data_root, 'coco80tohico80.json'), 'r') as f:
+            corr = json.load(f)
+        self.hico2coco = dict(zip(corr.values(), corr.keys()))
+    def __len__(self):
+        return len(self.dataset)
+    def __getitem__(self, idx):
+        image, target = self.dataset[idx]
+        boxes = torch.cat([
+            target['boxes_h'],
+            target['boxes_o']
+        ])
+        # Convert ground truth boxes to zero-based index and the
+        # representation from pixel indices to coordinates
+        boxes[:, :2] -= 1
+        labels = torch.cat([
+            49 * torch.ones_like(target['object']),
+            target['object']
+        ])
+        # Convert HICODet object indices to COCO indices
+        converted_labels = torch.tensor([int(self.hico2coco[i.item()]) for i in labels])
+        # Apply transform
+        image, target = self.transforms(image, dict(boxes=boxes, labels=converted_labels))
+        return [image], [target]
 
 class PostProcess(torch.nn.Module):
     @torch.no_grad()
@@ -35,6 +67,7 @@ class PostProcess(torch.nn.Module):
         return results
 
 def initialise(args):
+    # Load model and loss function
     detr, criterion, _ = build_model(args)
     if os.path.exists(args.pretrained):
         detr.load_state_dict(torch.load(args.pretrained)['model'])
@@ -53,7 +86,40 @@ def initialise(args):
     ))
     detr.class_embed = class_embed
 
-    return detr, criterion, PostProcess()
+    # Prepare dataset transforms
+    normalize = T.Compose([
+        T.ToTensor(),
+        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+    scales = [480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800]
+    if args.partition == 'train2015':
+        transforms = T.Compose([
+            T.RandomHorizontalFlip(),
+            T.RandomSelect(
+                T.RandomResize(scales, max_size=1333),
+                T.Compose([
+                    T.RandomResize([400, 500, 600]),
+                    T.RandomSizeCrop(384, 600),
+                    T.RandomResize(scales, max_size=1333),
+                ])
+            ),
+            normalize,
+        ])
+    if args.partition == 'test2015':
+        transforms = T.Compose([
+            T.RandomResize([800], max_size=1333),
+            normalize,
+        ])
+    # Load dataset
+    dataset = HICODetObject(
+        pocket.data.HICODet(
+            root=os.path.join(args.data_root, f'hico_20160224_det/images/{args.partition}'),
+            anno_file=os.path.join(args.data_root, f'instances_{args.partition}.json'),
+            target_transform=pocket.ops.ToTensor(input_format='dict')
+        ), args.data_root, transforms
+    )
+
+    return detr, criterion, PostProcess(), dataset
 
 
 if __name__ == '__main__':
@@ -117,6 +183,8 @@ if __name__ == '__main__':
 
     # dataset parameters
     parser.add_argument('--dataset_file', default='coco')
+    parser.add_argument('--partition', default='train2015')
+    parser.add_argument('--data_root', default='../')
     parser.add_argument('--output_dir', default='',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
@@ -136,8 +204,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     detr, criterion, postprocessors = initialise(args)
-    # image = Image.open('/Users/fredzzhang/Desktop/a.jpeg')
-    image = Image.open('/Users/fredzzhang/Developer/github/hicodet/hico_20160224_det/images/train2015/HICO_train2015_00000001.jpg')
+    image = Image.open('/Users/fredzzhang/Desktop/cellphone.jpeg')
+    # image = Image.open('/Users/fredzzhang/Developer/github/hicodet/hico_20160224_det/images/train2015/HICO_train2015_00000001.jpg')
     out = detr([pocket.ops.to_tensor(image, 'pil')])
 
     scores, labels, boxes = postprocessors(out, torch.as_tensor([image.height, image.width]).unsqueeze(0))[0].values()
