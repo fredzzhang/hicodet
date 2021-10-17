@@ -1,14 +1,20 @@
 import os
 import json
 import torch
+import random
 import pocket
 import argparse
+import numpy as np
 import torch.nn.functional as F
+import torch.distributed as dist
+import torch.multiprocessing as mp
 
 from PIL import Image
-import torchvision
 from torchvision.ops.boxes import batched_nms
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import (
+    Dataset, DataLoader,
+    DistributedSampler, BatchSampler
+)
 
 import sys
 sys.path.append('detr')
@@ -16,6 +22,22 @@ sys.path.append('detr')
 from util import box_ops
 from models import build_model
 import datasets.transforms as T
+
+class Engine(pocket.core.DistributedLearningEngine):
+    def __init__(self, net, criterion, dataloader, max_norm, **kwargs):
+        super().__init__(net, criterion, dataloader, **kwargs)
+        self.max_norm = max_norm
+
+    def _on_each_iteration(self):
+        self._state.output = self._state.net(*self._state.inputs)
+        loss_dict = self._criterion(self._state.output, self._state.targets)
+        weight_dict = self._criterion.weight_dict
+        self._state.loss = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+        self._state.optimizer.zero_grad(set_to_none=True)
+        self._state.loss.backward()
+        if self.max_norm > 0:
+            torch.nn.utils.clip_grad_norm(self._state.net.parameters(), self.max_norm)
+        self._state.optimizer.step()
 
 class HICODetObject(Dataset):
     def __init__(self, dataset, data_root, transforms, nms_thresh=0.7):
@@ -51,7 +73,7 @@ class HICODetObject(Dataset):
         converted_labels = torch.tensor([int(self.hico2coco[i.item()]) for i in labels])
         # Apply transform
         image, target = self.transforms(image, dict(boxes=boxes, labels=converted_labels))
-        return [image], [target]
+        return image, target
 
 class PostProcess(torch.nn.Module):
     @torch.no_grad()
@@ -131,6 +153,66 @@ def initialise(args):
 
     return detr, criterion, PostProcess(), dataset
 
+def collate_fn(batch):
+    images = []; targets = []
+    for img, tgt in batch:
+        images.append(img)
+        targets.append(tgt)
+    return images, targets
+
+def main(rank, args):
+
+    dist.init_process_group(
+        backend="nccl",
+        init_method="env://",
+        world_size=args.world_size,
+        rank=rank
+    )
+
+    # Fix seeds
+    seed = args.seed + dist.get_rank()
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+
+    torch.cuda.set_device(rank)
+
+    model, criterion, postprocessors, dataset = initialise(args)
+    sampler = DistributedSampler(dataset)
+    batch_sampler = BatchSampler(
+        sampler, args.batch_size,
+        drop_last=True
+    )
+    dataloader = DataLoader(
+        dataset, batch_sampler=batch_sampler,
+        collate_fn=collate_fn, num_workers=args.num_workers
+    )
+
+    engine = Engine(
+        model, criterion, dataloader,
+        max_norm=args.max_norm,
+        print_interval=args.print_interval,
+        cache_dir=args.output_dir
+    )
+
+    param_dicts = [
+        {
+            "params": [p for n, p in model.named_parameters()
+            if "backbone" not in n and p.requires_grad]
+        }, {
+            "params": [p for n, p in model.named_parameters()
+            if "backbone" in n and p.requires_grad],
+            "lr": args.lr_backbone,
+        },
+    ]
+    optimizer = torch.optim.AdamW(
+        param_dicts, lr=args.lr,
+        weight_decay=args.weight_decay
+    )
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
+
+    engine.update_state_key(optimizer=optimizer, lr_scheduler=lr_scheduler)
+    engine(args.epochs)
 
 if __name__ == '__main__':
 
@@ -187,40 +269,52 @@ if __name__ == '__main__':
 
     # dataset parameters
     parser.add_argument('--partition', default='train2015')
+    parser.add_argument('--num_workers', default=2, type=int)
     parser.add_argument('--data_root', default='../')
-    parser.add_argument('--output_dir', default='',
-                        help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--pretrained', default='', help='Start from a pre-trained model')
-    parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
-                        help='start epoch')
     parser.add_argument('--eval', action='store_true')
-    parser.add_argument('--num_workers', default=2, type=int)
 
     # distributed training parameters
+    parser.add_argument('--output_dir', default='checkpoints')
+    parser.add_argument('--print-interval', default=1000, type=int)
     parser.add_argument('--world_size', default=1, type=int,
                         help='number of distributed processes')
-    parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
 
     args = parser.parse_args()
+    print(args)
 
-    detr, criterion, postprocessors, dataset = initialise(args)
-    detr.eval()
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "1234"
+
+    mp.spawn(main, nprocs=args.world_size, args=(args,))
+
+    
+    
+    # detr.eval()
     # image = Image.open('/Users/fredzzhang/Desktop/cellphone.jpeg')
     # image = Image.open('/Users/fredzzhang/Developer/github/hicodet/hico_20160224_det/images/test2015/HICO_test2015_00000001.jpg')
 
-    img, tgt = dataset[0]
-    print(tgt)
+    # img, tgt = dataset[0]
+    # print(tgt)
     # out = detr(img)
+    # loss_dict = criterion(out, tgt)
+    # for k, v in loss_dict.items():
+    #     print(k, v)
+
+    # weight_dict = criterion.weight_dict
+    # losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+
+    # print(losses)
 
     # scores, labels, boxes = postprocessors(out, tgt[0]['size'].unsqueeze(0))[0].values()
     # keep = torch.nonzero(torch.logical_and(scores >= 0.9, labels != 0)).squeeze()
     # print(scores[keep])
     # print(labels[keep])
 
-    image = torchvision.transforms.ToPILImage()(img[0])
-    _, _, boxes = postprocessors(dict(pred_logits=torch.rand(1, 3, 81), pred_boxes=tgt[0]['boxes'].unsqueeze(0)), tgt[0]['size'].unsqueeze(0))[0].values()
-    pocket.utils.draw_boxes(image, boxes)
-    image.show()
+    # image = torchvision.transforms.ToPILImage()(img[0])
+    # _, _, boxes = postprocessors(dict(pred_logits=torch.rand(1, 3, 81), pred_boxes=tgt[0]['boxes'].unsqueeze(0)), tgt[0]['size'].unsqueeze(0))[0].values()
+    # pocket.utils.draw_boxes(image, boxes)
+    # image.show()
