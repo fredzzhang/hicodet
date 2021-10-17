@@ -6,6 +6,7 @@ import argparse
 import torch.nn.functional as F
 
 from PIL import Image
+from torchvision.ops.boxes import batched_nms
 from torch.utils.data import Dataset, DataLoader
 
 import sys
@@ -16,7 +17,7 @@ from models import build_model
 import datasets.transforms as T
 
 class HICODetObject(Dataset):
-    def __init__(self, dataset, data_root, transforms, nms_thresh=0.5):
+    def __init__(self, dataset, data_root, transforms, nms_thresh=0.7):
         self.dataset = dataset
         self.transforms = transforms
         self.nms_thresh = nms_thresh
@@ -38,6 +39,13 @@ class HICODetObject(Dataset):
             49 * torch.ones_like(target['object']),
             target['object']
         ])
+        # Remove overlapping ground truth boxes
+        keep = batched_nms(
+            boxes, torch.ones(len(boxes)),
+            labels, iou_threshold=self.nms_thresh
+        )
+        boxes = boxes[keep]
+        labels = labels[keep]
         # Convert HICODet object indices to COCO indices
         converted_labels = torch.tensor([int(self.hico2coco[i.item()]) for i in labels])
         # Apply transform
@@ -203,7 +211,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    detr, criterion, postprocessors = initialise(args)
+    detr, criterion, postprocessors, dataset = initialise(args)
     image = Image.open('/Users/fredzzhang/Desktop/cellphone.jpeg')
     # image = Image.open('/Users/fredzzhang/Developer/github/hicodet/hico_20160224_det/images/train2015/HICO_train2015_00000001.jpg')
     out = detr([pocket.ops.to_tensor(image, 'pil')])
