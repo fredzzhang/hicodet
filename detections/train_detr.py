@@ -79,6 +79,7 @@ def initialise(args):
     # Load model and loss function
     detr, criterion, _ = build_model(args)
     if os.path.exists(args.pretrained):
+        print(f"Load pre-trained model from {args.pretrained}")
         detr.load_state_dict(torch.load(args.pretrained)['model'])
     class_embed = torch.nn.Linear(256, 81, bias=True)
     w, b = detr.class_embed.state_dict().values()
