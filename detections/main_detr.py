@@ -90,6 +90,8 @@ class Engine(pocket.core.DistributedLearningEngine):
 
             meter.append(scores, labels, binary_labels)
 
+        return meter.eval()
+
 class HICODetObject(Dataset):
     def __init__(self, dataset, data_root, transforms, nms_thresh=0.7):
         self.dataset = dataset
@@ -229,15 +231,24 @@ def main(rank, args):
     torch.cuda.set_device(rank)
 
     model, criterion, postprocessors, dataset = initialise(args)
-    sampler = DistributedSampler(dataset)
-    batch_sampler = BatchSampler(
-        sampler, args.batch_size,
-        drop_last=True
-    )
-    dataloader = DataLoader(
-        dataset, batch_sampler=batch_sampler,
-        collate_fn=collate_fn, num_workers=args.num_workers
-    )
+    if args.eval:
+        sampler = torch.utils.data.SequentialSampler(dataset)
+        dataloader = DataLoader(
+            dataset, sampler=sampler,
+            batch_size=1, collate_fn=collate_fn,
+            num_workers=args.num_workers,
+            drop_last=False
+        )
+    else:
+        sampler = DistributedSampler(dataset)
+        batch_sampler = BatchSampler(
+            sampler, args.batch_size,
+            drop_last=True
+        )
+        dataloader = DataLoader(
+            dataset, batch_sampler=batch_sampler,
+            collate_fn=collate_fn, num_workers=args.num_workers
+        )
 
     engine = Engine(
         model, criterion, dataloader,
@@ -246,24 +257,28 @@ def main(rank, args):
         cache_dir=args.output_dir
     )
 
-    param_dicts = [
-        {
-            "params": [p for n, p in model.named_parameters()
-            if "backbone" not in n and p.requires_grad]
-        }, {
-            "params": [p for n, p in model.named_parameters()
-            if "backbone" in n and p.requires_grad],
-            "lr": args.lr_backbone,
-        },
-    ]
-    optimizer = torch.optim.AdamW(
-        param_dicts, lr=args.lr,
-        weight_decay=args.weight_decay
-    )
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
+    if args.eval:
+        ap = engine.eval(postprocessors)
+        print(f"The mAP is {ap.mean().item()}")
+    else:
+        param_dicts = [
+            {
+                "params": [p for n, p in model.named_parameters()
+                if "backbone" not in n and p.requires_grad]
+            }, {
+                "params": [p for n, p in model.named_parameters()
+                if "backbone" in n and p.requires_grad],
+                "lr": args.lr_backbone,
+            },
+        ]
+        optimizer = torch.optim.AdamW(
+            param_dicts, lr=args.lr,
+            weight_decay=args.weight_decay
+        )
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
-    engine.update_state_key(optimizer=optimizer, lr_scheduler=lr_scheduler)
-    engine(args.epochs)
+        engine.update_state_key(optimizer=optimizer, lr_scheduler=lr_scheduler)
+        engine(args.epochs)
 
 if __name__ == '__main__':
 
