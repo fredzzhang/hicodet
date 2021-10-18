@@ -76,7 +76,7 @@ class Engine(pocket.core.DistributedLearningEngine):
                 num_gt[c] += 1
 
             # Associate detections with ground truth
-            binary_labels = torch.zeros_like(labels)
+            binary_labels = torch.zeros(len(labels))
             unique_cls = labels.unique()
             for c in unique_cls:
                 det_idx = torch.nonzero(labels == c).squeeze(1)
