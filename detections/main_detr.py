@@ -1,12 +1,9 @@
-import enum
 import os
-import json
 import torch
 import random
 import pocket
 import argparse
 import numpy as np
-import torch.nn.functional as F
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
@@ -69,6 +66,11 @@ class Engine(pocket.core.DistributedLearningEngine):
             boxes = boxes[keep]
 
             gt_boxes = target[0]['boxes']
+            # Denormalise ground truth boxes
+            gt_boxes = box_ops.box_cxcywh_to_xyxy(gt_boxes)
+            h, w = target[0]['size']
+            scale_fct = torch.stack([w, h, w, h])
+            gt_boxes *= scale_fct
             gt_labels = target[0]['labels']
 
             for c in gt_labels:
