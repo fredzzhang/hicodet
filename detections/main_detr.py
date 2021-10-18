@@ -90,6 +90,7 @@ class Engine(pocket.core.DistributedLearningEngine):
 
             meter.append(scores, labels, binary_labels)
 
+        meter.num_gt = num_gt.tolist()
         return meter.eval()
 
 class HICODetObject(Dataset):
