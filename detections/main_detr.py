@@ -3,6 +3,7 @@ import torch
 import random
 import pocket
 import argparse
+import torchvision
 import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -265,6 +266,45 @@ def main(rank, args):
         engine.update_state_key(optimizer=optimizer, lr_scheduler=lr_scheduler)
         engine(args.epochs)
 
+@torch.no_grad()
+def sanity_check(args):
+    model, criterion, postprocessors, dataset = initialise(args)
+    image, target = dataset[0]
+    print("\nPrinting out the detection target =>")
+    for k, v in target.items():
+        print(f"{k}: {v}")
+    output = model([image])
+    loss_dict = criterion(output, [target])
+    print("\nPrinting out the computed losses =>")
+    for k, v in loss_dict.items():
+        print(f"{k}: {v.item():.4f}")
+
+    weight_dict = criterion.weight_dict
+    losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+
+    print("\nPrinting out the total loss =>")
+    print(losses.item())
+
+    scores, labels, boxes = postprocessors(output, target['size'].unsqueeze(0))[0].values()
+    keep = torch.nonzero(scores >= 0.5).squeeze()
+    print("\nPrinting out the detected instances =>")
+    for c, s in zip(labels[keep], scores[keep]):
+        print(f"Class {c.item()}: {s.item():.4f}")
+
+    image = torchvision.transforms.ToPILImage()(image)
+    image_copy = image.copy()
+    pocket.utils.draw_boxes(image, boxes[keep], width=3)
+    image.show(title='Detected boxes')
+
+    _, _, boxes = postprocessors(
+        dict(
+            pred_logits=torch.rand(1, 3, 81),
+            pred_boxes=target['boxes'].unsqueeze(0)
+        ), target['size'].unsqueeze(0)
+    )[0].values()
+    pocket.utils.draw_boxes(image_copy, boxes, width=3)
+    image_copy.show(title='Ground truth boxes')
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -322,48 +362,27 @@ if __name__ == '__main__':
     parser.add_argument('--partition', default='train2015')
     parser.add_argument('--num_workers', default=2, type=int)
     parser.add_argument('--data_root', default='../')
+
+    # training parameters
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--pretrained', default='', help='Start from a pre-trained model')
-    parser.add_argument('--eval', action='store_true')
-
-    # distributed training parameters
     parser.add_argument('--output_dir', default='checkpoints')
     parser.add_argument('--print-interval', default=1000, type=int)
     parser.add_argument('--world_size', default=1, type=int,
                         help='number of distributed processes')
+    parser.add_argument('--eval', action='store_true')
+    parser.add_argument('--sanity', action='store_true')
 
     args = parser.parse_args()
     print(args)
+
+    if args.sanity:
+        sanity_check(args)
+        sys.exit()
 
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "1234"
 
     mp.spawn(main, nprocs=args.world_size, args=(args,))
-    
-    # detr.eval()
-    # image = Image.open('/Users/fredzzhang/Desktop/cellphone.jpeg')
-    # image = Image.open('/Users/fredzzhang/Developer/github/hicodet/hico_20160224_det/images/test2015/HICO_test2015_00000001.jpg')
-
-    # img, tgt = dataset[0]
-    # print(tgt)
-    # out = detr(img)
-    # loss_dict = criterion(out, tgt)
-    # for k, v in loss_dict.items():
-    #     print(k, v)
-
-    # weight_dict = criterion.weight_dict
-    # losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
-
-    # print(losses)
-
-    # scores, labels, boxes = postprocessors(out, tgt[0]['size'].unsqueeze(0))[0].values()
-    # keep = torch.nonzero(torch.logical_and(scores >= 0.9, labels != 0)).squeeze()
-    # print(scores[keep])
-    # print(labels[keep])
-
-    # image = torchvision.transforms.ToPILImage()(img[0])
-    # _, _, boxes = postprocessors(dict(pred_logits=torch.rand(1, 3, 81), pred_boxes=tgt[0]['boxes'].unsqueeze(0)), tgt[0]['size'].unsqueeze(0))[0].values()
-    # pocket.utils.draw_boxes(image, boxes)
-    # image.show()
