@@ -56,7 +56,7 @@ class Engine(pocket.core.DistributedLearningEngine):
         num_gt = torch.zeros(80)
         if self._train_loader.batch_size != 1:
             raise ValueError(f"The batch size shoud be 1, not {self._train_loader.batch_size}")
-        for image, target in enumerate(tqdm(self._train_loader)):
+        for image, target in tqdm(self._train_loader):
             image = pocket.ops.relocate_to_cuda(image)
             output = self._state.net(image)
             scores, labels, boxes = postprocessors(
