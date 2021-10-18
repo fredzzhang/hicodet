@@ -187,7 +187,7 @@ def initialise(args):
         ), transforms
     )
 
-    return detr, criterion, postprocessors, dataset
+    return detr, criterion, postprocessors['bbox'], dataset
 
 def collate_fn(batch):
     images = []; targets = []
