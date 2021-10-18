@@ -59,14 +59,15 @@ class Engine(pocket.core.DistributedLearningEngine):
         for image, target in tqdm(self._train_loader):
             image = pocket.ops.relocate_to_cuda(image)
             output = self._state.net(image)
+            output = pocket.ops.relocate_to_cpu(output)
             scores, labels, boxes = postprocessors(
                 output, target[0]['size'].unsqueeze(0)
             )[0].values()
             keep = torch.nonzero(scores >= thresh).squeeze(1)
-            scores = scores[keep].cpu()
+            scores = scores[keep]
             # Convert to one-based index
-            labels = labels[keep].cpu() + 1
-            boxes = boxes[keep].cpu()
+            labels = labels[keep] + 1
+            boxes = boxes[keep]
 
             gt_boxes = target[0]['boxes']
             gt_labels = target[0]['labels']
