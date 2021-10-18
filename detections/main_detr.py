@@ -91,7 +91,7 @@ class Engine(pocket.core.DistributedLearningEngine):
             meter.append(scores, labels, binary_labels)
 
         meter.num_gt = num_gt.tolist()
-        return meter.eval()
+        return meter.eval(), meter.max_rec
 
 class HICODetObject(Dataset):
     def __init__(self, dataset, data_root, transforms, nms_thresh=0.7):
@@ -259,8 +259,8 @@ def main(rank, args):
     )
 
     if args.eval:
-        ap = engine.eval(postprocessors)
-        print(f"The mAP is {ap.mean().item()}")
+        ap, rec = engine.eval(postprocessors)
+        print(f"The mAP is {ap.mean().item():.4f}, the mRec is {rec.mean().item():.4f}")
     else:
         param_dicts = [
             {
