@@ -1,3 +1,4 @@
+import enum
 import os
 import json
 import torch
@@ -10,6 +11,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from PIL import Image
+from tqdm import tqdm
 from torchvision.ops.boxes import batched_nms
 from torch.utils.data import (
     Dataset, DataLoader,
@@ -43,6 +45,50 @@ class Engine(pocket.core.DistributedLearningEngine):
         if self.max_norm > 0:
             torch.nn.utils.clip_grad_norm_(self._state.net.parameters(), self.max_norm)
         self._state.optimizer.step()
+
+    @torch.no_grad()
+    def eval(self, postprocessors, thresh=0.1):
+        self._state.net.eval()
+        associate = pocket.utils.BoxAssociation(min_iou=0.5)
+        meter = pocket.utils.DetectionAPMeter(
+            80, algorithm='INT', nproc=10
+        )
+        num_gt = torch.zeros(80)
+        if self._train_loader.batch_size != 1:
+            raise ValueError(f"The batch size shoud be 1, not {self._train_loader.batch_size}")
+        for image, target in enumerate(tqdm(self._train_loader)):
+            image = pocket.ops.relocate_to_cuda(image)
+            output = self._state.net(image)
+            scores, labels, boxes = postprocessors(
+                output, target[0]['size'].unsqueeze(0)
+            )[0].values()
+            keep = torch.nonzero(scores >= thresh).squeeze(1)
+            scores = scores[keep].cpu()
+            # Convert to one-based index
+            labels = labels[keep].cpu() + 1
+            boxes = boxes[keep].cpu()
+
+            gt_boxes = target[0]['boxes']
+            gt_labels = target[0]['labels']
+
+            for c in gt_labels:
+                num_gt[c] += 1
+
+            # Associate detections with ground truth
+            binary_labels = torch.zeros_like(labels)
+            unique_cls = labels.unique()
+            for c in unique_cls:
+                det_idx = torch.nonzero(labels == c).squeeze(1)
+                gt_idx = torch.nonzero(gt_labels == c).squeeze(1)
+                if len(gt_idx) == 0:
+                    continue
+                binary_labels[det_idx] = associate(
+                    gt_boxes[gt_idx].view(-1, 4),
+                    boxes[det_idx].view(-1, 4),
+                    scores[det_idx].view(-1)
+                )
+
+            meter.append(scores, labels, binary_labels)
 
 class HICODetObject(Dataset):
     def __init__(self, dataset, data_root, transforms, nms_thresh=0.7):
@@ -295,8 +341,6 @@ if __name__ == '__main__':
     os.environ["MASTER_PORT"] = "1234"
 
     mp.spawn(main, nprocs=args.world_size, args=(args,))
-
-    
     
     # detr.eval()
     # image = Image.open('/Users/fredzzhang/Desktop/cellphone.jpeg')
