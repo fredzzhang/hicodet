@@ -65,8 +65,7 @@ class Engine(pocket.core.DistributedLearningEngine):
             )[0].values()
             keep = torch.nonzero(scores >= thresh).squeeze(1)
             scores = scores[keep]
-            # Convert to one-based index
-            labels = labels[keep] + 1
+            labels = labels[keep]
             boxes = boxes[keep]
 
             gt_boxes = target[0]['boxes']
@@ -95,13 +94,17 @@ class Engine(pocket.core.DistributedLearningEngine):
         return meter.eval(), meter.max_rec
 
 class HICODetObject(Dataset):
-    def __init__(self, dataset, data_root, transforms, nms_thresh=0.7):
+    def __init__(self, dataset, transforms, nms_thresh=0.7):
         self.dataset = dataset
         self.transforms = transforms
         self.nms_thresh = nms_thresh
-        with open(os.path.join(data_root, 'coco80tohico80.json'), 'r') as f:
-            corr = json.load(f)
-        self.hico2coco = dict(zip(corr.values(), corr.keys()))
+        self.conversion = [
+             4, 47, 24, 46, 34, 35, 21, 59, 13,  1, 14,  8, 73, 39, 45, 50,  5,
+            55,  2, 51, 15, 67, 56, 74, 57, 19, 41, 60, 16, 54, 20, 10, 42, 29,
+            23, 78, 26, 17, 52, 66, 33, 43, 63, 68,  3, 64, 49, 69, 12,  0, 53,
+            58, 72, 65, 48, 76, 18, 71, 36, 30, 31, 44, 32, 11, 28, 37, 77, 38,
+            27, 70, 61, 79,  9,  6,  7, 62, 25, 75, 40, 22
+        ]
     def __len__(self):
         return len(self.dataset)
     def __getitem__(self, idx):
@@ -125,7 +128,7 @@ class HICODetObject(Dataset):
         boxes = boxes[keep]
         labels = labels[keep]
         # Convert HICODet object indices to COCO indices
-        converted_labels = torch.tensor([int(self.hico2coco[i.item()]) for i in labels])
+        converted_labels = torch.as_tensor([self.conversion[i.item()] for i in labels])
         # Apply transform
         image, target = self.transforms(image, dict(boxes=boxes, labels=converted_labels))
         return image, target
@@ -161,11 +164,11 @@ def initialise(args):
     class_embed = torch.nn.Linear(256, 81, bias=True)
     w, b = detr.class_embed.state_dict().values()
     keep = [
-        91, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20,
-        21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
-        42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
-        61, 62, 63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82,
-        84, 85, 86, 87, 88, 89, 90
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+        22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+        43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
+        62, 63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84,
+        85, 86, 87, 88, 89, 90, 91
     ]
     # Remove deprecated classes
     class_embed.load_state_dict(dict(
@@ -203,7 +206,7 @@ def initialise(args):
             root=os.path.join(args.data_root, f'hico_20160224_det/images/{args.partition}'),
             anno_file=os.path.join(args.data_root, f'instances_{args.partition}.json'),
             target_transform=pocket.ops.ToTensor(input_format='dict')
-        ), args.data_root, transforms
+        ), transforms
     )
 
     return detr, criterion, PostProcess(), dataset
