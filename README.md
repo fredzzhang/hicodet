@@ -3,6 +3,7 @@ Utilities for the human-object interaction detection dataset [HICO-DET](http://w
 
 ## Supported Utilities
 
+- [x] __NEW!__ [Train and test DETR on HICO-DET](https://github.com/fredzzhang/hicodet/tree/main/detections#train-and-test-detr-on-hico-det)
 - [x] [A command-line style dataset navigator](https://github.com/fredzzhang/hicodet/tree/main/utilities#dataset-navigator)
 - [x] [Large-scale visualisation in web page](https://github.com/fredzzhang/hicodet/tree/main/utilities#generate-and-visaulise-box-pairs-in-large-scales)
 - [x] [Generate object detections with Faster R-CNN](https://github.com/fredzzhang/hicodet/tree/main/detections#generate-detections-using-faster-r-cnn)

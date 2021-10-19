@@ -1,5 +1,23 @@
 # Detection Utilities
 
+
+## Train and test DETR on HICO-DET
+
+To train the DETR model with ResNet50 as the backbone, run the following command.
+```bash
+python main_detr.py --world_size 8 --epochs 200 --lr_drop 150 &>out &
+```
+This starts from a randomly initialised model. To start from a MS COCO pretrained model, first download the checkpoint by executing `bash download_checkpoint.sh`, then run the following command.
+
+```bash
+python main_detr.py --world_size 8 --epochs 50 --lr_drop 30 --pretrained checkpoints/detr-r50-e632da11.pth &>out &
+```
+To test a model, run the following command.
+```bash
+python main_detr.py --eval --partition test2015 --pretrained /path/to/checkpoint
+```
+For more options regarding the customisation of network architecture and hyper-parameters, run `python main_detr.py --help` to find out. Alternatively, refer to the [original repo](https://github.com/facebookresearch/detr).
+
 ## Generate detections using Faster R-CNN
 
 ```bash
@@ -39,8 +57,4 @@ Evaluate the mAP of the detections against the ground truth object detections of
 CUDA_VISIBLE_DEVICES=0 python faster_rcnn.py
 ```
 
-Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Note that setting the environmental variable `CUDA_VISIBLE_DEVICES` is necessary and should __NOT__ be omitted (Refer to [#7](https://github.com/fredzzhang/hicodet/issues/7)). Run `python faster_rcnn.py --help` for more options regarding the hyper-parameters. To download the checkpoint of our fine-tuned detector, run the following script. The downloaded file is available under `./checkpoints`, which can be used directly to generate detections (see previous sections).
-
-```bash
-bash download_checkpoint.sh
-```
+Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Note that setting the environmental variable `CUDA_VISIBLE_DEVICES` is necessary and should __NOT__ be omitted (Refer to [#7](https://github.com/fredzzhang/hicodet/issues/7)). Run `python faster_rcnn.py --help` for more options regarding the hyper-parameters.
