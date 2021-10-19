@@ -368,6 +368,7 @@ if __name__ == '__main__':
     # training parameters
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
+    parser.add_argument('--port', default='1234', type=str)
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--pretrained', default='', help='Start from a pre-trained model')
     parser.add_argument('--resume', default='', help='Resume from a model')
@@ -386,6 +387,6 @@ if __name__ == '__main__':
         sys.exit()
 
     os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "1234"
+    os.environ["MASTER_PORT"] = args.port
 
     mp.spawn(main, nprocs=args.world_size, args=(args,))
