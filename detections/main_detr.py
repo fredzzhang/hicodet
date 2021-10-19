@@ -139,23 +139,25 @@ class HICODetObject(Dataset):
 def initialise(args):
     # Load model and loss function
     detr, criterion, postprocessors = build_model(args)
+    class_embed = torch.nn.Linear(256, 81, bias=True)
     if os.path.exists(args.pretrained):
         print(f"Load pre-trained model from {args.pretrained}")
         detr.load_state_dict(torch.load(args.pretrained)['model_state_dict'])
-    class_embed = torch.nn.Linear(256, 81, bias=True)
-    w, b = detr.class_embed.state_dict().values()
-    keep = [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-        22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
-        43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
-        62, 63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84,
-        85, 86, 87, 88, 89, 90, 91
-    ]
-    # Remove deprecated classes
-    class_embed.load_state_dict(dict(
-        weight=w[keep], bias=b[keep]
-    ))
+        w, b = detr.class_embed.state_dict().values()
+        keep = [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+            22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+            43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
+            62, 63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84,
+            85, 86, 87, 88, 89, 90, 91
+        ]
+        class_embed.load_state_dict(dict(
+            weight=w[keep], bias=b[keep]
+        ))
     detr.class_embed = class_embed
+    if os.path.exists(args.resume):
+        print(f"Resume from model at {args.resume}")
+        detr.load_state_dict(torch.load(args.pretrained)['model_state_dict'])
 
     # Prepare dataset transforms
     normalize = T.Compose([
@@ -368,6 +370,7 @@ if __name__ == '__main__':
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--pretrained', default='', help='Start from a pre-trained model')
+    parser.add_argument('--resume', default='', help='Resume from a model')
     parser.add_argument('--output_dir', default='checkpoints')
     parser.add_argument('--print-interval', default=1000, type=int)
     parser.add_argument('--world_size', default=1, type=int,
