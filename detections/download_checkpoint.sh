@@ -1,8 +1,7 @@
 #!/bin/bash
 
 DIR=checkpoints
-FILE=fasterrcnn_resnet50_fpn_hicodet_e13.pt
-ID=11lS2BQ_In-22Q-SRTRjRQaSLg9nSim9h
+FILE=detr-r50-e632da11.pth
 
 if [ ! -d $DIR ]; then
    mkdir $DIR
@@ -15,7 +14,13 @@ fi
 
 echo "Connecting..."
 
-wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&id=$ID" -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1/p')&id=$ID" -O $FILE && rm -rf /tmp/cookies.txt
+wget https://dl.fbaipublicfiles.com/detr/detr-r50-e632da11.pth
+
+python << END
+import torch
+m = torch.load('detr-r50-e632da11.pth', map_location='cpu')
+torch.save(dict(model_state_dict=m['model']), 'detr-r50-e632da11.pth')
+END
 
 mv $FILE $DIR/
 
