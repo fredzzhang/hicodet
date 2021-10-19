@@ -141,7 +141,7 @@ def initialise(args):
     detr, criterion, postprocessors = build_model(args)
     if os.path.exists(args.pretrained):
         print(f"Load pre-trained model from {args.pretrained}")
-        detr.load_state_dict(torch.load(args.pretrained)['model'])
+        detr.load_state_dict(torch.load(args.pretrained)['model_state_dict'])
     class_embed = torch.nn.Linear(256, 81, bias=True)
     w, b = detr.class_embed.state_dict().values()
     keep = [
