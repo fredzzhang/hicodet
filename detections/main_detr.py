@@ -157,7 +157,7 @@ def initialise(args):
     detr.class_embed = class_embed
     if os.path.exists(args.resume):
         print(f"Resume from model at {args.resume}")
-        detr.load_state_dict(torch.load(args.pretrained)['model_state_dict'])
+        detr.load_state_dict(torch.load(args.resume)['model_state_dict'])
 
     # Prepare dataset transforms
     normalize = T.Compose([
