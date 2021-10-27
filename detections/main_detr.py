@@ -168,6 +168,7 @@ def initialise(args):
     if args.partition == 'train2015':
         transforms = T.Compose([
             T.RandomHorizontalFlip(),
+            T.ColorJitter(.4, .4, .4),
             T.RandomSelect(
                 T.RandomResize(scales, max_size=1333),
                 T.Compose([
