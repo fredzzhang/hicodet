@@ -2,14 +2,10 @@
 
 ## Train and test DETR on HICO-DET
 
-To train the DETR model with ResNet50 as the backbone, run the following command.
-```bash
-python main_detr.py --world_size 8 --epochs 200 --lr_drop 150 &>out &
-```
-This starts from a randomly initialised model. To start from a MS COCO pretrained model, first download the checkpoint by executing `bash download_checkpoint.sh`, then run the following command.
+To fine-tune the DETR model with ResNet50 as the backbone from a MS COCO pretrained model, first download the checkpoint by executing `bash download_checkpoint.sh`, then run the following command.
 
 ```bash
-python main_detr.py --world_size 8 --epochs 50 --lr_drop 30 --pretrained checkpoints/detr-r50-e632da11.pth &>out &
+python main_detr.py --world_size 8 --epochs 30 --pretrained checkpoints/detr-r50-e632da11.pth &>out &
 ```
 To test a model a pre-trained model, use the flag `--pretrained` to specify the path. To test a model trained using this repo, use the flag `--resume` to specify the path. If you use both flags, the pre-trained model will be overriden by the newly trained model.
 ```bash
