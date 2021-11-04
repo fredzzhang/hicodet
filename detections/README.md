@@ -7,7 +7,7 @@ To fine-tune the DETR model with ResNet50 as the backbone from a MS COCO pretrai
 ```bash
 python main_detr.py --world_size 8 --epochs 30 --pretrained checkpoints/detr-r50-e632da11.pth &>out &
 ```
-To test a model a pre-trained model, use the flag `--pretrained` to specify the path. To test a model trained using this repo, use the flag `--resume` to specify the path. If you use both flags, the pre-trained model will be overriden by the newly trained model.
+To test a pre-trained model, use the flag `--pretrained` to specify the path. To test a model trained using this repo, use the flag `--resume` to specify the path. If you use both flags, the pre-trained model will be overriden by the newly trained model.
 ```bash
 python main_detr.py --eval --partition test2015 --pretrained /path/to/checkpoint --resume /path/to/checkpoint
 ```
