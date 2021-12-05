@@ -16,6 +16,8 @@ from torch.utils.data import (
     DistributedSampler, BatchSampler
 )
 
+from vcoco.vcoco import VCOCO
+
 import sys
 sys.path.append('detr')
 
@@ -136,6 +138,36 @@ class HICODetObject(Dataset):
         image, target = self.transforms(image, dict(boxes=boxes, labels=converted_labels))
         return image, target
 
+class VCOCOObject(Dataset):
+    def __init__(self, dataset, transformers, nms_thresh=0.7):
+        self.dataset = dataset
+        self.transforms = transformers
+        self.nms_thresh = nms_thresh
+    def __len__(self):
+        return len(self.dataset)
+    def __getitem__(self, idx):
+        image, target = self.dataset[idx]
+        boxes = torch.cat([
+            target['boxes_h'],
+            target['boxes_o']
+        ])
+        labels = torch.cat([
+            torch.ones_like(target['objects']),
+            target['objects']
+        ])
+        # Convert to zero-based index
+        labels -= 1
+
+        keep = batched_nms(
+            boxes, torch.ones(len(boxes)),
+            labels, iou_threshold=self.nms_thresh
+        )
+        boxes = boxes[keep]
+        labels = labels[keep]
+
+        image, target = self.transforms(image, dict(boxes=boxes, labels=labels))
+        return image, target
+
 def initialise(args):
     # Load model and loss function
     detr, criterion, postprocessors = build_model(args)
@@ -165,7 +197,7 @@ def initialise(args):
         T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     scales = [480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800]
-    if args.partition == 'train2015':
+    if args.partition.startswith('train'):
         transforms = T.Compose([
             T.RandomHorizontalFlip(),
             T.ColorJitter(.4, .4, .4),
@@ -179,19 +211,26 @@ def initialise(args):
             ),
             normalize,
         ])
-    if args.partition == 'test2015':
+    if args.partition.startswith('test'):
         transforms = T.Compose([
             T.RandomResize([800], max_size=1333),
             normalize,
         ])
     # Load dataset
-    dataset = HICODetObject(
-        pocket.data.HICODet(
-            root=os.path.join(args.data_root, f'hico_20160224_det/images/{args.partition}'),
-            anno_file=os.path.join(args.data_root, f'instances_{args.partition}.json'),
-            target_transform=pocket.ops.ToTensor(input_format='dict')
-        ), transforms
-    )
+    # dataset = HICODetObject(
+    #     pocket.data.HICODet(
+    #         root=os.path.join(args.data_root, f'hico_20160224_det/images/{args.partition}'),
+    #         anno_file=os.path.join(args.data_root, f'instances_{args.partition}.json'),
+    #         target_transform=pocket.ops.ToTensor(input_format='dict')
+    #     ), transforms
+    # )
+
+    im_dir = {'trainval': 'train2014', 'test': 'val2014'}
+    dataset = VCOCOObject(VCOCO(
+        root=os.path.join(args.data_root, f"mscoco2014/{im_dir[args.partition]}"),
+        anno_file=os.path.join(args.data_root, f"instances_vcoco_{args.partition}.json"),
+        target_transform=pocket.ops.ToTensor(input_format='dict')
+    ), transforms)
 
     return detr, criterion, postprocessors['bbox'], dataset
 
