@@ -245,26 +245,6 @@ class HICODet(ImageDataset):
         return [self._verbs[j] + ' ' + self.objects[i] 
             for _, i, j in self._class_corr]
 
-    @property
-    def rare(self) -> List[int]:
-        """
-        List of rare class indices
-        
-        Returns:
-            list[int]
-        """
-        return self._rare
-
-    @property
-    def non_rare(self) -> List [int]:
-        """
-        List of non-rare class indices
-
-        Returns:
-            list[int]
-        """
-        return self._non_rare
-
     def split(self, ratio: float) -> Tuple[HICODetSubset, HICODetSubset]:
         """
         Split the dataset according to given ratio
@@ -311,5 +291,3 @@ class HICODet(ImageDataset):
         self._empty_idx = f['empty']
         self._objects = f['objects']
         self._verbs = f['verbs']
-        self._rare = f['rare']
-        self._non_rare = f['non_rare']
