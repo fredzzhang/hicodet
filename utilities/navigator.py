@@ -98,6 +98,7 @@ def move(tree, dataset, args):
             visualise(dataset, idx2, idx1)
         else:
             visualise(dataset, idx1, idx2)
+            print(f"File name: {dataset.filename(idx1)}")
     else:
         print("Unknown destination \"{}\"".format(dest))
     # Recursively move to the desitination
