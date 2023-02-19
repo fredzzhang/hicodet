@@ -60,22 +60,23 @@ class Engine(pocket.core.DistributedLearningEngine):
             outputs = pocket.ops.relocate_to_cpu(net(images))
 
             scores_clt = []; preds_clt = []; labels_clt = []
-            for output, target in zip(outputs, targets):
-                scores, labels, boxes = postprocessors(
-                    output, target[0]['size'].unsqueeze(0)
-                )[0].values()
+            detections = postprocessors(
+                outputs, torch.stack([t["size"] for t in targets])
+            )
+            for det, target in zip(detections, targets):
+                scores, labels, boxes = det.values()
                 keep = torch.nonzero(scores >= thresh).squeeze(1)
                 scores = scores[keep]
                 labels = labels[keep]
                 boxes = boxes[keep]
 
-                gt_boxes = target[0]['boxes']
+                gt_boxes = target['boxes']
                 # Denormalise ground truth boxes
                 gt_boxes = box_ops.box_cxcywh_to_xyxy(gt_boxes)
-                h, w = target[0]['size']
+                h, w = target['size']
                 scale_fct = torch.stack([w, h, w, h])
                 gt_boxes *= scale_fct
-                gt_labels = target[0]['labels']
+                gt_labels = target['labels']
 
                 for c in gt_labels:
                     num_gt[c] += 1
