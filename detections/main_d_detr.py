@@ -22,10 +22,21 @@ from detr.datasets import transforms as T
 from d_detr.models import build_model
 
 class Engine(pocket.core.DistributedLearningEngine):
-    def __init__(self, net, criterion, train_loader, test_loader, max_norm, **kwargs):
+    def __init__(self, net, criterion, train_loader, test_loader, postprocessor, max_norm, **kwargs):
         super().__init__(net, criterion, train_loader, **kwargs)
         self.max_norm = max_norm
         self.test_loader = test_loader
+        self.postprocessor = postprocessor
+
+    def _on_start(self):
+        ap, rec = self.eval(self.postprocessor)
+        if self._rank == 0:
+            perf = [ap.mean().item(), rec.mean().item()]
+            print(
+                f"Epoch: {self._state.epoch} =>\t"
+                f"mAP: {perf[0]:.4f}, mRec: {perf[1]:.4f}"
+            )
+            self.best_perf = perf[0]
 
     def _on_start_epoch(self):
         self._state.epoch += 1
@@ -42,6 +53,30 @@ class Engine(pocket.core.DistributedLearningEngine):
         if self.max_norm > 0:
             torch.nn.utils.clip_grad_norm_(self._state.net.parameters(), self.max_norm)
         self._state.optimizer.step()
+
+    def _on_end_epoch(self):
+        ap, rec = self.eval(self.postprocessor)
+        if self._rank == 0:
+            perf = [ap.mean().item(), rec.mean().item()]
+            print(
+                f"Epoch: {self._state.epoch} =>\t"
+                f"mAP: {perf[0]:.4f}, mRec: {perf[1]:.4f}"
+            )
+            # Save checkpoints
+            checkpoint = {
+                'iteration': self._state.iteration,
+                'epoch': self._state.epoch,
+                'performance': perf,
+                'model_state_dict': self._state.net.module.state_dict(),
+                'optim_state_dict': self._state.optimizer.state_dict(),
+            }
+            if self._state.lr_scheduler is not None:
+                checkpoint['scheduler_state_dict'] = self._state.lr_scheduler.state_dict()
+            torch.save(checkpoint, os.path.join(self._cache_dir, "latest.pth"))
+            if perf[0] > self.best_perf:
+                torch.save(checkpoint, os.path.join(self._cache_dir, "best.pth"))
+        if self._state.lr_scheduler is not None:
+            self._state.lr_scheduler.step()
 
     @torch.no_grad()
     def eval(self, postprocessors, thresh=0.1):
@@ -267,7 +302,8 @@ def main(rank, args):
     )
 
     engine = Engine(
-        model, criterion, train_loader, test_loader,
+        model, criterion, train_loader,
+        test_loader, postprocessors,
         max_norm=args.clip_max_norm,
         print_interval=args.print_interval,
         cache_dir=args.output_dir
