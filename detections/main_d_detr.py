@@ -145,6 +145,9 @@ class Engine(pocket.core.DistributedLearningEngine):
             if self._rank == 0:
                 meter.append(scores_ddp, preds_ddp, labels_ddp)
 
+        if self._world_size > 1:
+            dist.barrier()
+            dist.all_reduce(num_gt, op=dist.ReduceOp.SUM)
         if self._rank == 0:
             meter.num_gt = num_gt.tolist()
             ap = meter.eval()
