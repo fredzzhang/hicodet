@@ -1,6 +1,5 @@
 import os
 import sys
-import copy
 import torch
 import random
 import pocket
@@ -11,7 +10,6 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from tqdm import tqdm
-from torch import nn
 from torchvision.ops.boxes import batched_nms
 from torch.utils.data import (
     Dataset, DataLoader,
@@ -249,34 +247,53 @@ def main(rank, args):
     if args.eval:
         ap, rec = engine.eval(postprocessors)
         print(f"The mAP is {ap.mean().item():.4f}, the mRec is {rec.mean().item():.4f}")
-    else:
-        param_dicts = [
-            {
-                "params": [p for n, p in model.named_parameters()
-                if "backbone" not in n and p.requires_grad]
-            }, {
-                "params": [p for n, p in model.named_parameters()
-                if "backbone" in n and p.requires_grad],
-                "lr": args.lr_backbone,
-            },
-        ]
-        optimizer = torch.optim.AdamW(
-            param_dicts, lr=args.lr,
-            weight_decay=args.weight_decay
-        )
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
+        sys.exit()
 
-        engine.update_state_key(optimizer=optimizer, lr_scheduler=lr_scheduler)
-        engine(args.epochs)
+    # lr_backbone_names = ["backbone.0", "backbone.neck", "input_proj", "transformer.encoder"]
+    def match_name_keywords(n, name_keywords):
+        out = False
+        for b in name_keywords:
+            if b in n:
+                out = True
+                break
+        return out
+    param_dicts = [
+        {
+            "params":
+                [p for n, p in model.named_parameters()
+                if not match_name_keywords(n, args.lr_backbone_names)
+                and not match_name_keywords(n, args.lr_linear_proj_names)
+                and p.requires_grad],
+            "lr": args.lr,
+        }, {
+            "params": [p for n, p in model.named_parameters()
+            if match_name_keywords(n, args.lr_backbone_names) and p.requires_grad],
+            "lr": args.lr_backbone,
+        }, {
+            "params": [p for n, p in model.named_parameters()
+            if match_name_keywords(n, args.lr_linear_proj_names) and p.requires_grad],
+            "lr": args.lr * args.lr_linear_proj_mult,
+        }
+    ]
+    optimizer = torch.optim.AdamW(
+        param_dicts, lr=args.lr,
+        weight_decay=args.weight_decay
+    )
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
+
+    engine.update_state_key(optimizer=optimizer, lr_scheduler=lr_scheduler)
+    engine(args.epochs)
 
 @torch.no_grad()
 def sanity_check(args):
     model, criterion, postprocessors, dataset = initialise(args)
     image, target = dataset[0]
+    model = model.cuda()
+    image = image.cuda()
     print("\nPrinting out the detection target =>")
     for k, v in target.items():
         print(f"{k}: {v}")
-    output = model([image])
+    output = pocket.ops.relocate_to_cpu(model([image]))
     loss_dict = criterion(output, [target])
     print("\nPrinting out the computed losses =>")
     for k, v in loss_dict.items():
@@ -290,6 +307,9 @@ def sanity_check(args):
 
     scores, labels, boxes = postprocessors(output, target['size'].unsqueeze(0))[0].values()
     keep = torch.nonzero(scores >= 0.5).squeeze()
+    if len(keep) == 0:
+        print("No detections above score threshold.")
+        sys.exit()
     print("\nPrinting out the detected instances =>")
     for c, s in zip(labels[keep], scores[keep]):
         print(f"Class {c.item()}: {s.item():.4f}")
@@ -297,16 +317,16 @@ def sanity_check(args):
     image = torchvision.transforms.ToPILImage()(image)
     image_copy = image.copy()
     pocket.utils.draw_boxes(image, boxes[keep], width=3)
-    image.show(title='Detected boxes')
+    image.save("image.png")
 
     _, _, boxes = postprocessors(
         dict(
-            pred_logits=torch.rand(1, 3, 81),
+            pred_logits=torch.rand(1, len(target['boxes']), 80),
             pred_boxes=target['boxes'].unsqueeze(0)
         ), target['size'].unsqueeze(0)
     )[0].values()
     pocket.utils.draw_boxes(image_copy, boxes, width=3)
-    image_copy.show(title='Ground truth boxes')
+    image_copy.save("detections.png")
 
 if __name__ == '__main__':
 
@@ -329,7 +349,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr_drop', default=40, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
 
-    parser.add_argument('--data_root', default="../hicodet", type=str)
+    parser.add_argument('--data_root', default="..", type=str)
     parser.add_argument('--partition', default="train2015", type=str)
     parser.add_argument('--pretrained', default='', help="load pretrained model", type=str)
     parser.add_argument('--resume', default='', help='resume from checkpoint')
