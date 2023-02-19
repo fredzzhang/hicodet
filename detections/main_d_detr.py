@@ -141,34 +141,23 @@ def initialise(args):
     detr, criterion, postprocessors = build_model(args)
     if args.two_stage:
         raise NotImplementedError("Two-stage option not supported.")
-    class_embed = nn.Linear(256, 81, bias=True)
-    if os.path.exists(args.pretrained):
+    if os.path.exists(args.resume):
+        print(f"Resume from model at {args.resume}")
+        detr.load_state_dict(torch.load(args.resume)['model_state_dict'])
+    elif os.path.exists(args.pretrained):
         print(f"Load pre-trained model from {args.pretrained}")
-        detr.load_state_dict(torch.load(args.pretrained)['model'])
+        model_weights = torch.load(args.pretrained)['model']
         keep = [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21,
             22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
             43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
             62, 63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84,
-            85, 86, 87, 88, 89, 90, 91
+            85, 86, 87, 88, 89, 90
         ]
-        if args.with_box_refine:
-            class_embed = nn.ModuleList([copy.deepcopy(class_embed) for _ in len(detr.class_embed)])
-            for i in range(len(detr.class_embed)):
-                w, b = detr.class_embed[i].state_dict().values()
-                class_embed[i].load_state_dict(dict(
-                    weight=w[keep], bias=b[keep]
-                ))
-        else:
-            w, b = detr.class_embed[0].state_dict().values()
-            class_embed.load_state_dict(dict(
-                weight=w[keep], bias=b[keep]
-            ))
-            class_embed = nn.ModuleList([class_embed for _ in len(detr.class_embed)])
-    detr.class_embed = class_embed
-    if os.path.exists(args.resume):
-        print(f"Resume from model at {args.resume}")
-        detr.load_state_dict(torch.load(args.resume)['model_state_dict'])
+        for k in model_weights.keys():
+            if k.startswith("class_embed"):
+                model_weights[k] = model_weights[k][keep]
+        detr.load_state_dict(model_weights)
 
     # Prepare dataset transforms
     normalize = T.Compose([
