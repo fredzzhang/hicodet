@@ -8,7 +8,6 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from PIL import Image
 from tqdm import tqdm
 from torchvision.ops.boxes import batched_nms
 from torch.utils.data import (
@@ -16,12 +15,9 @@ from torch.utils.data import (
     DistributedSampler, BatchSampler
 )
 
-import sys
-sys.path.append('detr')
-
-from util import box_ops
-from models import build_model
-import datasets.transforms as T
+from detr.util import box_ops
+from detr.models import build_model
+from detr.datasets import transforms as T
 
 class Engine(pocket.core.DistributedLearningEngine):
     def __init__(self, net, criterion, dataloader, max_norm, **kwargs):
