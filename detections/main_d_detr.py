@@ -22,9 +22,10 @@ from detr.datasets import transforms as T
 from d_detr.models import build_model
 
 class Engine(pocket.core.DistributedLearningEngine):
-    def __init__(self, net, criterion, dataloader, max_norm, **kwargs):
-        super().__init__(net, criterion, dataloader, **kwargs)
+    def __init__(self, net, criterion, train_loader, test_loader, max_norm, **kwargs):
+        super().__init__(net, criterion, train_loader, **kwargs)
         self.max_norm = max_norm
+        self.test_loader = test_loader
 
     def _on_start_epoch(self):
         self._state.epoch += 1
@@ -44,55 +45,77 @@ class Engine(pocket.core.DistributedLearningEngine):
 
     @torch.no_grad()
     def eval(self, postprocessors, thresh=0.1):
-        self._state.net.eval()
+        dataloader = self.test_loader
+        net = self._state.net
+        net.eval()
+
         associate = pocket.utils.BoxAssociation(min_iou=0.5)
-        meter = pocket.utils.DetectionAPMeter(
-            80, algorithm='INT', nproc=10
-        )
+        if self._rank == 0:
+            meter = pocket.utils.DetectionAPMeter(
+                80, algorithm='INT', nproc=10
+            )
         num_gt = torch.zeros(80)
-        if self._train_loader.batch_size != 1:
-            raise ValueError(f"The batch size shoud be 1, not {self._train_loader.batch_size}")
-        for image, target in tqdm(self._train_loader):
-            image = pocket.ops.relocate_to_cuda(image)
-            output = self._state.net(image)
-            output = pocket.ops.relocate_to_cpu(output)
-            scores, labels, boxes = postprocessors(
-                output, target[0]['size'].unsqueeze(0)
-            )[0].values()
-            keep = torch.nonzero(scores >= thresh).squeeze(1)
-            scores = scores[keep]
-            labels = labels[keep]
-            boxes = boxes[keep]
+        for images, targets in tqdm(dataloader, disable=(self._world_size != 1)):
+            images = pocket.ops.relocate_to_cuda(images)
+            outputs = pocket.ops.relocate_to_cpu(net(images))
 
-            gt_boxes = target[0]['boxes']
-            # Denormalise ground truth boxes
-            gt_boxes = box_ops.box_cxcywh_to_xyxy(gt_boxes)
-            h, w = target[0]['size']
-            scale_fct = torch.stack([w, h, w, h])
-            gt_boxes *= scale_fct
-            gt_labels = target[0]['labels']
+            scores_clt = []; preds_clt = []; labels_clt = []
+            for output, target in zip(outputs, targets):
+                scores, labels, boxes = postprocessors(
+                    output, target[0]['size'].unsqueeze(0)
+                )[0].values()
+                keep = torch.nonzero(scores >= thresh).squeeze(1)
+                scores = scores[keep]
+                labels = labels[keep]
+                boxes = boxes[keep]
 
-            for c in gt_labels:
-                num_gt[c] += 1
+                gt_boxes = target[0]['boxes']
+                # Denormalise ground truth boxes
+                gt_boxes = box_ops.box_cxcywh_to_xyxy(gt_boxes)
+                h, w = target[0]['size']
+                scale_fct = torch.stack([w, h, w, h])
+                gt_boxes *= scale_fct
+                gt_labels = target[0]['labels']
 
-            # Associate detections with ground truth
-            binary_labels = torch.zeros(len(labels))
-            unique_cls = labels.unique()
-            for c in unique_cls:
-                det_idx = torch.nonzero(labels == c).squeeze(1)
-                gt_idx = torch.nonzero(gt_labels == c).squeeze(1)
-                if len(gt_idx) == 0:
-                    continue
-                binary_labels[det_idx] = associate(
-                    gt_boxes[gt_idx].view(-1, 4),
-                    boxes[det_idx].view(-1, 4),
-                    scores[det_idx].view(-1)
-                )
+                for c in gt_labels:
+                    num_gt[c] += 1
 
-            meter.append(scores, labels, binary_labels)
+                # Associate detections with ground truth
+                binary_labels = torch.zeros(len(labels))
+                unique_cls = labels.unique()
+                for c in unique_cls:
+                    det_idx = torch.nonzero(labels == c).squeeze(1)
+                    gt_idx = torch.nonzero(gt_labels == c).squeeze(1)
+                    if len(gt_idx) == 0:
+                        continue
+                    binary_labels[det_idx] = associate(
+                        gt_boxes[gt_idx].view(-1, 4),
+                        boxes[det_idx].view(-1, 4),
+                        scores[det_idx].view(-1)
+                    )
 
-        meter.num_gt = num_gt.tolist()
-        return meter.eval(), meter.max_rec
+                scores_clt.append(scores)
+                preds_clt.append(labels)
+                labels_clt.append(binary_labels)
+            # Collate results into one tensor
+            scores_clt = torch.cat(scores_clt)
+            preds_clt = torch.cat(preds_clt)
+            labels_clt = torch.cat(labels_clt)
+            # Gather data from all processes
+            scores_ddp = torch.cat(pocket.utils.all_gather(scores_clt))
+            preds_ddp = torch.cat(pocket.utils.all_gather(preds_clt))
+            labels_ddp = torch.cat(pocket.utils.all_gather(labels_clt))
+
+            if self._rank == 0:
+                meter.append(scores_ddp, preds_ddp, labels_ddp)
+
+        if self._rank == 0:
+            meter.num_gt = num_gt.tolist()
+            ap = meter.eval()
+            max_rec = meter.max_rec
+            return ap, max_rec
+        else:
+            return -1, -1
 
 class HICODetObject(Dataset):
     def __init__(self, dataset, transforms, nms_thresh=0.7):
@@ -163,35 +186,40 @@ def initialise(args):
         T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     scales = [480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800]
-    if args.partition == 'train2015':
-        transforms = T.Compose([
-            T.RandomHorizontalFlip(),
-            T.ColorJitter(.4, .4, .4),
-            T.RandomSelect(
+    transforms_train = T.Compose([
+        T.RandomHorizontalFlip(),
+        T.ColorJitter(.4, .4, .4),
+        T.RandomSelect(
+            T.RandomResize(scales, max_size=1333),
+            T.Compose([
+                T.RandomResize([400, 500, 600]),
+                T.RandomSizeCrop(384, 600),
                 T.RandomResize(scales, max_size=1333),
-                T.Compose([
-                    T.RandomResize([400, 500, 600]),
-                    T.RandomSizeCrop(384, 600),
-                    T.RandomResize(scales, max_size=1333),
-                ])
-            ),
-            normalize,
-        ])
-    if args.partition == 'test2015':
-        transforms = T.Compose([
-            T.RandomResize([800], max_size=1333),
-            normalize,
-        ])
+            ])
+        ),
+        normalize,
+    ])
+    transforms_test = T.Compose([
+        T.RandomResize([800], max_size=1333),
+        normalize,
+    ])
     # Load dataset
-    dataset = HICODetObject(
+    train_set = HICODetObject(
         pocket.data.HICODet(
-            root=os.path.join(args.data_root, f'hico_20160224_det/images/{args.partition}'),
-            anno_file=os.path.join(args.data_root, f'instances_{args.partition}.json'),
+            root=os.path.join(args.data_root, f'hico_20160224_det/images/train2015'),
+            anno_file=os.path.join(args.data_root, f'instances_train2015.json'),
             target_transform=pocket.ops.ToTensor(input_format='dict')
-        ), transforms
+        ), transforms_train
+    )
+    test_set = HICODetObject(
+        pocket.data.HICODet(
+            root=os.path.join(args.data_root, f'hico_20160224_det/images/test2015'),
+            anno_file=os.path.join(args.data_root, f'instances_test2015.json'),
+            target_transform=pocket.ops.ToTensor(input_format='dict')
+        ), transforms_test
     )
 
-    return detr, criterion, postprocessors['bbox'], dataset
+    return detr, criterion, postprocessors['bbox'], [train_set, test_set]
 
 def collate_fn(batch):
     images = []; targets = []
@@ -217,28 +245,28 @@ def main(rank, args):
 
     torch.cuda.set_device(rank)
 
-    model, criterion, postprocessors, dataset = initialise(args)
-    if args.eval:
-        sampler = torch.utils.data.SequentialSampler(dataset)
-        dataloader = DataLoader(
-            dataset, sampler=sampler,
-            batch_size=1, collate_fn=collate_fn,
-            num_workers=args.num_workers,
-            drop_last=False
+    model, criterion, postprocessors, datasets = initialise(args)
+    train_loader = DataLoader(
+        dataset=datasets[0], collate_fn=collate_fn,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers, pin_memory=True,
+        sampler=DistributedSampler(
+            datasets[0], num_replicas=args.world_size,
+            rank=rank, drop_last=True
         )
-    else:
-        sampler = DistributedSampler(dataset)
-        batch_sampler = BatchSampler(
-            sampler, args.batch_size,
-            drop_last=True
+    )
+    test_loader = DataLoader(
+        dataset=datasets[1], collate_fn=collate_fn,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers, pin_memory=True,
+        sampler=DistributedSampler(
+            datasets[1], num_replicas=args.world_size,
+            rank=rank, drop_last=True, shuffle=False
         )
-        dataloader = DataLoader(
-            dataset, batch_sampler=batch_sampler,
-            collate_fn=collate_fn, num_workers=args.num_workers
-        )
+    )
 
     engine = Engine(
-        model, criterion, dataloader,
+        model, criterion, train_loader, test_loader,
         max_norm=args.clip_max_norm,
         print_interval=args.print_interval,
         cache_dir=args.output_dir
@@ -246,8 +274,9 @@ def main(rank, args):
 
     if args.eval:
         ap, rec = engine.eval(postprocessors)
-        print(f"The mAP is {ap.mean().item():.4f}, the mRec is {rec.mean().item():.4f}")
-        sys.exit()
+        if rank == 0:
+            print(f"The mAP is {ap.mean().item():.4f}, the mRec is {rec.mean().item():.4f}")
+        return
 
     # lr_backbone_names = ["backbone.0", "backbone.neck", "input_proj", "transformer.encoder"]
     def match_name_keywords(n, name_keywords):
@@ -286,8 +315,8 @@ def main(rank, args):
 
 @torch.no_grad()
 def sanity_check(args):
-    model, criterion, postprocessors, dataset = initialise(args)
-    image, target = dataset[0]
+    model, criterion, postprocessors, datasets = initialise(args)
+    image, target = datasets[0][0]
     model = model.cuda()
     image = image.cuda()
     print("\nPrinting out the detection target =>")
@@ -350,7 +379,6 @@ if __name__ == '__main__':
     parser.add_argument('--weight_decay', default=1e-4, type=float)
 
     parser.add_argument('--data_root', default="..", type=str)
-    parser.add_argument('--partition', default="train2015", type=str)
     parser.add_argument('--pretrained', default='', help="load pretrained model", type=str)
     parser.add_argument('--resume', default='', help='resume from checkpoint')
 
