@@ -201,8 +201,6 @@ class HICODetObject(Dataset):
 def initialise(args):
     # Load model and loss function
     detr, criterion, postprocessors = build_model(args)
-    if args.two_stage:
-        raise NotImplementedError("Two-stage option not supported.")
     if os.path.exists(args.resume):
         print(f"Resume from model at {args.resume}")
         detr.load_state_dict(torch.load(args.resume)['model_state_dict'])
@@ -217,7 +215,7 @@ def initialise(args):
             85, 86, 87, 88, 89, 90
         ]
         for k in model_weights.keys():
-            if k.startswith("class_embed"):
+            if "class_embed" in k:
                 model_weights[k] = model_weights[k][keep]
         detr.load_state_dict(model_weights)
 
