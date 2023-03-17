@@ -1,3 +1,6 @@
 [submodule "detections/detr"]
 	path = detections/detr
 	url = https://github.com/fredzzhang/detr.git
+[submodule "detections/d-detr"]
+	path = detections/d_detr
+	url = https://github.com/fredzzhang/d-detr.git
