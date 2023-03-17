@@ -2,7 +2,7 @@
 
 ## Train and test DETR on HICO-DET
 
-To fine-tune the DETR model with ResNet50 as the backbone from a MS COCO pretrained model, first download the checkpoints from the table below.
+To fine-tune DETR from a MS COCO pretrained model, first download the checkpoints from the table below. The following command is an example for fine-tuning DETR-R50.
 
 ```bash
 python main_detr.py --world_size 8 --epochs 30 --pretrained checkpoints/detr-r50-e632da11.pth &>out &
