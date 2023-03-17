@@ -2,7 +2,7 @@
 
 ## Train and test DETR on HICO-DET
 
-To fine-tune the DETR model with ResNet50 as the backbone from a MS COCO pretrained model, first download the checkpoint by executing `bash download_checkpoint.sh`, then run the following command.
+To fine-tune DETR from a MS COCO pretrained model, first download the checkpoints from the table below. The following command is an example for fine-tuning DETR-R50.
 
 ```bash
 python main_detr.py --world_size 8 --epochs 30 --pretrained checkpoints/detr-r50-e632da11.pth &>out &
@@ -13,11 +13,11 @@ python main_detr.py --eval --partition test2015 --pretrained /path/to/checkpoint
 ```
 For more options regarding the customisation of network architecture and hyperparameters, run `python main_detr.py --help` to find out. Alternatively, refer to the [original repo](https://github.com/facebookresearch/detr). For convenience, we provide fine-tuned DETR weights below.
 
-|Model|mAP|mRec|Weights|Size|Inference|
-|:-|:-:|:-:|:-:|:-:|:-:|
-|DETR-R50|`50.60`|`72.36`|[weights](https://drive.google.com/file/d/1BQ-0tbSH7UC6QMIMMgdbNpRw2NcO8yAD/view?usp=sharing)|`159MB`|`0.036s`|
-|DETR-R101|`51.68`|`73.20`|[weights](https://drive.google.com/file/d/1pZrRp8Qcs5FNM9CJsWzVxwzU7J8C-t8f/view?usp=sharing)|`232MB`|`0.050s`|
-|DETR-R101-DC5|`52.38`|`74.40`|[weights](https://drive.google.com/file/d/1kkyVeoUGb8rT9b5J5Q3f51OFmm4Z73UD/view?usp=sharing)|`232MB`|`0.097s`|
+|Model|mAP|mRec|HICO-DET|Size|Inference|MS COCO|
+|:-|:-:|:-:|:-:|:-:|:-:|:-:|
+|DETR-R50|`50.60`|`72.36`|[weights](https://drive.google.com/file/d/1BQ-0tbSH7UC6QMIMMgdbNpRw2NcO8yAD/view?usp=sharing)|`159MB`|`0.036s`|[weights](https://dl.fbaipublicfiles.com/detr/detr-r50-e632da11.pth)|
+|DETR-R101|`51.68`|`73.20`|[weights](https://drive.google.com/file/d/1pZrRp8Qcs5FNM9CJsWzVxwzU7J8C-t8f/view?usp=sharing)|`232MB`|`0.050s`|[weights](https://dl.fbaipublicfiles.com/detr/detr-r101-2c7b67e5.pth)|
+|DETR-R101-DC5|`52.38`|`74.40`|[weights](https://drive.google.com/file/d/1kkyVeoUGb8rT9b5J5Q3f51OFmm4Z73UD/view?usp=sharing)|`232MB`|`0.097s`|[weights](https://dl.fbaipublicfiles.com/detr/detr-r101-dc5-a2e86def.pth)|
 
 ## Generate detections using Faster R-CNN
 

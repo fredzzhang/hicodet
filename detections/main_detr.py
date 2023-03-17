@@ -139,7 +139,7 @@ def initialise(args):
     class_embed = torch.nn.Linear(256, 81, bias=True)
     if os.path.exists(args.pretrained):
         print(f"Load pre-trained model from {args.pretrained}")
-        detr.load_state_dict(torch.load(args.pretrained)['model_state_dict'])
+        detr.load_state_dict(torch.load(args.pretrained)['model'])
         w, b = detr.class_embed.state_dict().values()
         keep = [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21,
