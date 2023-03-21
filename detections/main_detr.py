@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import random
 import pocket
@@ -8,7 +9,6 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from PIL import Image
 from tqdm import tqdm
 from torchvision.ops.boxes import batched_nms
 from torch.utils.data import (
@@ -18,12 +18,9 @@ from torch.utils.data import (
 
 from vcoco.vcoco import VCOCO
 
-import sys
-sys.path.append('detr')
-
-from util import box_ops
-from models import build_model
-import datasets.transforms as T
+from detr.util import box_ops
+from detr.models import build_model
+from detr.datasets import transforms as T
 
 class Engine(pocket.core.DistributedLearningEngine):
     def __init__(self, net, criterion, dataloader, max_norm, **kwargs):
@@ -174,7 +171,7 @@ def initialise(args):
     class_embed = torch.nn.Linear(256, 81, bias=True)
     if os.path.exists(args.pretrained):
         print(f"Load pre-trained model from {args.pretrained}")
-        detr.load_state_dict(torch.load(args.pretrained)['model_state_dict'])
+        detr.load_state_dict(torch.load(args.pretrained)['model'])
         w, b = detr.class_embed.state_dict().values()
         keep = [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21,

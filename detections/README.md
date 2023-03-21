@@ -2,16 +2,22 @@
 
 ## Train and test DETR on HICO-DET
 
-To fine-tune the DETR model with ResNet50 as the backbone from a MS COCO pretrained model, first download the checkpoint by executing `bash download_checkpoint.sh`, then run the following command.
+To fine-tune DETR from a MS COCO pretrained model, first download the checkpoints from the table below. The following command is an example for fine-tuning DETR-R50.
 
 ```bash
 python main_detr.py --world_size 8 --epochs 30 --pretrained checkpoints/detr-r50-e632da11.pth &>out &
 ```
-To test a pre-trained model, use the flag `--pretrained` to specify the path. To test a model trained using this repo, use the flag `--resume` to specify the path. If you use both flags, the pre-trained model will be overriden by the newly trained model.
+To test a pre-trained model, use the flag `--pretrained` to specify the path. To test a model trained using this repo, use the flag `--resume` to specify the path. If you use both flags, the pre-trained model will be overridden by the newly trained model.
 ```bash
 python main_detr.py --eval --partition test2015 --pretrained /path/to/checkpoint --resume /path/to/checkpoint
 ```
-For more options regarding the customisation of network architecture and hyper-parameters, run `python main_detr.py --help` to find out. Alternatively, refer to the [original repo](https://github.com/facebookresearch/detr).
+For more options regarding the customisation of network architecture and hyperparameters, run `python main_detr.py --help` to find out. Alternatively, refer to the [original repo](https://github.com/facebookresearch/detr). For convenience, we provide fine-tuned DETR weights below.
+
+|Model|mAP|mRec|HICO-DET|Size|Inference|MS COCO|
+|:-|:-:|:-:|:-:|:-:|:-:|:-:|
+|DETR-R50|`50.60`|`72.36`|[weights](https://drive.google.com/file/d/1BQ-0tbSH7UC6QMIMMgdbNpRw2NcO8yAD/view?usp=sharing)|`159MB`|`0.036s`|[weights](https://dl.fbaipublicfiles.com/detr/detr-r50-e632da11.pth)|
+|DETR-R101|`51.68`|`73.20`|[weights](https://drive.google.com/file/d/1pZrRp8Qcs5FNM9CJsWzVxwzU7J8C-t8f/view?usp=sharing)|`232MB`|`0.050s`|[weights](https://dl.fbaipublicfiles.com/detr/detr-r101-2c7b67e5.pth)|
+|DETR-R101-DC5|`52.38`|`74.40`|[weights](https://drive.google.com/file/d/1kkyVeoUGb8rT9b5J5Q3f51OFmm4Z73UD/view?usp=sharing)|`232MB`|`0.097s`|[weights](https://dl.fbaipublicfiles.com/detr/detr-r101-dc5-a2e86def.pth)|
 
 ## Generate detections using Faster R-CNN
 
@@ -19,7 +25,7 @@ For more options regarding the customisation of network architecture and hyper-p
 python preprocessing.py --partition train2015
 ```
 
-A Faster R-CNN model pre-trained on MS COCO will be used by default to generate detections. Use the argument `--partition` to specify the subset to run the detector on. To run a Faster R-CNN model with fine-tuned weights, use the argument `--ckpt-path` to load the model from specified checkpoint. Run `python preprocessing.py --help` to find out more about post-processing options. The generated detections will be saved in a directory named after the parition e.g. `train2015`.
+A Faster R-CNN model pretrained on MS COCO will be used by default to generate detections. Use the argument `--partition` to specify the subset to run the detector on. To run a Faster R-CNN model with fine-tuned weights, use the argument `--ckpt-path` to load the model from specified checkpoint. Run `python preprocessing.py --help` to find out more about post-processing options. The generated detections will be saved in a directory named after the partition e.g. `train2015`.
 
 ## Generate ground truth detections
 
@@ -27,7 +33,7 @@ A Faster R-CNN model pre-trained on MS COCO will be used by default to generate 
 python generate_gt_detections.py --partition test2015
 ```
 
-Generate detections from the ground truth boxes. Notes that since the ground truth is formatted as box pairs, when the same human (or object) instance appears multiple times in different pairs, they will be saved multiple times. Moreover, the same instance could have slightly different annotated boxes when appearing in different pairs. For this reason, we do not perform NMS in the code and leave the choice of post-processing to the users. The generated detections will be saved in a directory named after the parition e.g. `test2015_gt`. 
+Generate detections from the ground truth boxes. Notes that since the ground truth is formatted as box pairs, when the same human (or object) instance appears multiple times in different pairs, they will be saved multiple times. Moreover, the same instance could have slightly different annotated boxes when appearing in different pairs. For this reason, we do not perform NMS in the code and leave the choice of post-processing to the users. The generated detections will be saved in a directory named after the partition e.g. `test2015_gt`. 
 
 ## Visualise detections
 
@@ -52,4 +58,4 @@ Evaluate the mAP of the detections against the ground truth object detections of
 CUDA_VISIBLE_DEVICES=0 python train_faster_rcnn.py
 ```
 
-Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Note that setting the environmental variable `CUDA_VISIBLE_DEVICES` is necessary and should __NOT__ be omitted (Refer to [#7](https://github.com/fredzzhang/hicodet/issues/7)). Run `python faster_rcnn.py --help` for more options regarding the hyper-parameters.
+Start from the pre-trained detector on MS COCO and fine-tune the detector on HICO-DET. Note that setting the environmental variable `CUDA_VISIBLE_DEVICES` is necessary and should __NOT__ be omitted (Refer to [#7](https://github.com/fredzzhang/hicodet/issues/7)). Run `python faster_rcnn.py --help` for more options regarding the hyperparameters.
