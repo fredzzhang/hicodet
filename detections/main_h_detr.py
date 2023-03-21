@@ -13,7 +13,7 @@ from tqdm import tqdm
 from torchvision.ops.boxes import batched_nms
 from torch.utils.data import (
     Dataset, DataLoader,
-    DistributedSampler, BatchSampler
+    DistributedSampler,
 )
 
 from detr.util import box_ops
@@ -445,11 +445,11 @@ if __name__ == '__main__':
                         help="Number of encoding layers in the transformer")
     parser.add_argument('--dec_layers', default=6, type=int,
                         help="Number of decoding layers in the transformer")
-    parser.add_argument('--dim_feedforward', default=1024, type=int,
+    parser.add_argument('--dim_feedforward', default=2048, type=int,
                         help="Intermediate size of the feedforward layers in the transformer blocks")
     parser.add_argument('--hidden_dim', default=256, type=int,
                         help="Size of the embeddings (dimension of the transformer)")
-    parser.add_argument('--dropout', default=0.1, type=float,
+    parser.add_argument('--dropout', default=0.0, type=float,
                         help="Dropout applied in the transformer")
     parser.add_argument('--nheads', default=8, type=int,
                         help="Number of attention heads inside the transformer's attentions")
@@ -464,7 +464,7 @@ if __name__ == '__main__':
     parser.add_argument("--mixed_selection", action="store_true", default=False)
     parser.add_argument("--look_forward_twice", action="store_true", default=False)
     # Hybrid branch
-    parser.add_argument("--k_one2many", default=5, type=int)
+    parser.add_argument("--k_one2many", default=6, type=int)
     parser.add_argument("--lambda_one2many", default=1.0, type=float)
 
     # * Segmentation
