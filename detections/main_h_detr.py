@@ -9,6 +9,9 @@ import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
+import warnings
+warnings.simplefilter("ignore", UserWarning)
+
 from tqdm import tqdm
 from torchvision.ops.boxes import batched_nms
 from torch.utils.data import (
@@ -19,7 +22,7 @@ from torch.utils.data import (
 from detr.util import box_ops
 from detr.datasets import transforms as T
 
-from d_detr.models import build_model
+from h_detr.models import build_model
 
 class Engine(pocket.core.DistributedLearningEngine):
     def __init__(self, net, criterion, train_loader, test_loader, postprocessor, max_norm, **kwargs):
