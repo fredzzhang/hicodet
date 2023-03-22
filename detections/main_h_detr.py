@@ -441,6 +441,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_feature_levels', default=4, type=int, help='number of feature levels')
 
     # * Swin backbone
+    parser.add_argument("--pretrained_backbone_path", default=None, type=str)
     parser.add_argument("--drop_path_rate", default=0.2, type=float)
 
     # * Transformer
