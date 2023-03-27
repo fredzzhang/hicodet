@@ -21,7 +21,7 @@ For more options regarding the customisation of network architecture and hyperpa
 
 ## Train and test advanced variants of DETR on HICO-DET
 
-First build the CUDA code for `MultiScaleDeformableAttention`, as follows
+First build the CUDA operators for `MultiScaleDeformableAttention`, as follows
 
 ```bash
 cd h_detr/models/ops
