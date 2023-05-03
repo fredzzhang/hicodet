@@ -69,9 +69,9 @@ python main_h_detr.py --with_box_refine --two_stage --mixed_selection --look_for
 
 |Model|mAP|mRec|HICO-DET|MS COCO|
 |:-|:-:|:-:|:-:|:-:|
-|Defm-DETR-R50|`53.30`|`77.86`|[weights]()|[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/r50_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
-|H-Defm-DETR-R50|`54.16`|`78.39`||[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/r50_hybrid_branch_lambda1_group6_t1500_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
-|H-Defm-DETR-SwinL|`64.23`|`85.17`||[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/decay0.05_drop_path0.5_swin_large_hybrid_branch_lambda1_group6_t1500_n900_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
+|Defm-DETR-R50|`53.30`|`77.86`|[weights](https://drive.google.com/file/d/1A0FQQLLQE32j7YISHsJZO76dK9vqy1ll/view?usp=share_link)|[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/r50_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
+|H-Defm-DETR-R50|`54.16`|`78.39`|[weights](https://drive.google.com/file/d/1cwMJNMQALDrVdTxQL6Vdw66thpgeyq-2/view?usp=share_link)|[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/r50_hybrid_branch_lambda1_group6_t1500_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
+|H-Defm-DETR-SwinL|`64.23`|`85.17`|[weights](https://drive.google.com/file/d/1wge-CC1Fx67EHOSXyHGHvrqvMva2jEkr/view?usp=share_link)|[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/decay0.05_drop_path0.5_swin_large_hybrid_branch_lambda1_group6_t1500_n900_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
 
 ## Generate detections using Faster R-CNN
 
