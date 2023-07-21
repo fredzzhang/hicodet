@@ -2,7 +2,7 @@
 
 ## Train and test DETR on HICO-DET
 
-To fine-tune DETR from a MS COCO pretrained model, first download the checkpoints from the table below. The following command is an example for fine-tuning DETR-R50.
+To fine-tune [DETR](https://arxiv.org/abs/2005.12872) from a MS COCO pretrained model, first download the checkpoints from the table below. The following command is an example for fine-tuning DETR-R50.
 
 ```bash
 python main_detr.py --world_size 8 --epochs 30 --pretrained checkpoints/detr-r50-e632da11.pth &>out &
@@ -18,6 +18,60 @@ For more options regarding the customisation of network architecture and hyperpa
 |DETR-R50|`50.60`|`72.36`|[weights](https://drive.google.com/file/d/1BQ-0tbSH7UC6QMIMMgdbNpRw2NcO8yAD/view?usp=sharing)|`159MB`|`0.036s`|[weights](https://dl.fbaipublicfiles.com/detr/detr-r50-e632da11.pth)|
 |DETR-R101|`51.68`|`73.20`|[weights](https://drive.google.com/file/d/1pZrRp8Qcs5FNM9CJsWzVxwzU7J8C-t8f/view?usp=sharing)|`232MB`|`0.050s`|[weights](https://dl.fbaipublicfiles.com/detr/detr-r101-2c7b67e5.pth)|
 |DETR-R101-DC5|`52.38`|`74.40`|[weights](https://drive.google.com/file/d/1kkyVeoUGb8rT9b5J5Q3f51OFmm4Z73UD/view?usp=sharing)|`232MB`|`0.097s`|[weights](https://dl.fbaipublicfiles.com/detr/detr-r101-dc5-a2e86def.pth)|
+
+## Train and test advanced variants of DETR on HICO-DET
+
+First build the CUDA operators for `MultiScaleDeformableAttention`, as follows
+
+```bash
+cd h_detr/models/ops
+# Append flag --user to the command below if you are using compute clusters
+# and do not have write permission in system directories.
+python setup.py build install
+```
+
+To fine-tune an advanced variant of DETR, download the MS COCO pre-trained weights from the table below. The following commands are examples for fine-tuning the [Deformable DETR](https://arxiv.org/abs/2010.04159) with [additional techniques](https://arxiv.org/abs/2203.03605) and the more advanced H variants ([hybrid matching](https://arxiv.org/abs/2207.13080)). If the GPUs you use do not have sufficient memory, use the `--use_checkpoint` option to [save memory](https://pytorch.org/docs/stable/checkpoint.html).
+
+```bash
+# Train Deformable DETR-R50 with additional techniques
+python main_h_detr.py --with_box_refine --two_stage --mixed_selection --look_forward_twice \
+                      --k_one2many 0  --epochs 30 --world_size 8 --batch_size 2 \
+                      --pretrained /path/to/checkpoint
+
+# Train H-Deformable DETR-R50 with additional techniques
+python main_h_detr.py --with_box_refine --two_stage --mixed_selection --look_forward_twice \
+                      --num_queries_one2many 1500 --k_one2many 6 \
+                      --epochs 30 --world_size 8 --batch_size 2 \
+                      --pretrained /path/to/checkpoint
+
+# Train H-Deformable DETR-SwinL with additional techniques
+python main_h_detr.py --with_box_refine --two_stage --mixed_selection --look_forward_twice \
+                      --backbone swin_large --drop_path_rate 0.5 \
+                      --num_queries_one2one 900 --num_queries_one2many 1500 --k_one2many 6 \
+                      --epochs 30 --world_size 8 --batch_size 2 --weight_decay 0.05 \
+                      --pretrained /path/to/checkpoint
+```
+
+To test a MS COCO pre-trained model, use the flag `--pretrained` to specify the path. To test a model fine-tuned using this repo, use the flag `--resume` to specify the path. If you use both flags, the pre-trained model will be overridden.
+
+```bash
+# Test MS COCO pre-trained Deformable DETR-R50
+python main_h_detr.py --with_box_refine --two_stage --mixed_selection --look_forward_twice \
+                      --world_size 1 --batch_size 1 --eval \
+                      --pretrained /path/to/checkpoint
+
+# Test HICO-DET fine-tuned Deformable DETR-R50
+python main_h_detr.py --with_box_refine --two_stage --mixed_selection --look_forward_twice \
+                      --world_size 1 --batch_size 1 --eval \
+                      --resume defm-detr-r50-dp0-mqs-lft-iter-2stg-hicodet.pth
+
+```
+
+|Model|mAP|mRec|HICO-DET|MS COCO|
+|:-|:-:|:-:|:-:|:-:|
+|Defm-DETR-R50|`53.30`|`77.86`|[weights](https://drive.google.com/file/d/1A0FQQLLQE32j7YISHsJZO76dK9vqy1ll/view?usp=share_link)|[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/r50_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
+|H-Defm-DETR-R50|`54.16`|`78.39`|[weights](https://drive.google.com/file/d/1cwMJNMQALDrVdTxQL6Vdw66thpgeyq-2/view?usp=share_link)|[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/r50_hybrid_branch_lambda1_group6_t1500_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
+|H-Defm-DETR-SwinL|`64.23`|`85.17`|[weights](https://drive.google.com/file/d/1wge-CC1Fx67EHOSXyHGHvrqvMva2jEkr/view?usp=share_link)|[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/decay0.05_drop_path0.5_swin_large_hybrid_branch_lambda1_group6_t1500_n900_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
 
 ## Generate detections using Faster R-CNN
 
