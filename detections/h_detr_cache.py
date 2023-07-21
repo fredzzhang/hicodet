@@ -177,8 +177,6 @@ if __name__ == '__main__':
     parser.add_argument('--focal_alpha', default=0.25, type=float)
 
     # * Misc
-    parser.add_argument('--eval', default=False, action='store_true')
-    parser.add_argument('--sanity', default=False, action="store_true")
     parser.add_argument('--data_root', default="..", type=str)
     parser.add_argument('--pretrained', default='', help="load pretrained model", type=str)
     parser.add_argument('--resume', default='', help='resume from checkpoint')
