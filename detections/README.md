@@ -73,6 +73,21 @@ python main_h_detr.py --with_box_refine --two_stage --mixed_selection --look_for
 |H-Defm-DETR-R50|`54.16`|`78.39`|[weights](https://drive.google.com/file/d/1cwMJNMQALDrVdTxQL6Vdw66thpgeyq-2/view?usp=share_link)|[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/r50_hybrid_branch_lambda1_group6_t1500_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
 |H-Defm-DETR-SwinL|`64.23`|`85.17`|[weights](https://drive.google.com/file/d/1wge-CC1Fx67EHOSXyHGHvrqvMva2jEkr/view?usp=share_link)|[weights](https://github.com/HDETR/H-Deformable-DETR/releases/download/v0.1/decay0.05_drop_path0.5_swin_large_hybrid_branch_lambda1_group6_t1500_n900_dp0_mqs_lft_deformable_detr_plus_iterative_bbox_refinement_plus_plus_two_stage_36eps.pth)|
 
+## Generate detections using the H-DETR variants
+
+```bash
+# Use MS COCO pre-trained H-Deformable DETR-R50
+python h_detr_cache.py  --with_box_refine --two_stage --mixed_selection --look_forward_twice \
+                        --num_queries_one2many 1500 \
+                        --pretrained /path/to/checkpoint
+
+# Use HICO-DET fine-tuned H-Deformable DETR-R50
+python h_detr_cache.py  --with_box_refine --two_stage --mixed_selection --look_forward_twice \
+                        --num_queries_one2many 1500 \
+                        --resume h-defm-detr-r50-dp0-mqs-lft-iter-2stg-hicodet.pth
+```
+By default, detections will be cached under the directory `cached_detections` in the form of `.json` files. To cache detections for custom datasets, refer to the instructions in the script.
+
 ## Generate detections using Faster R-CNN
 
 ```bash
