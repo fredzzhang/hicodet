@@ -188,7 +188,7 @@ if __name__ == '__main__':
     parser.add_argument("--topk", default=100, type=int)
     parser.add_argument("--use_checkpoint", default=False, action="store_true")
 
-    parser.add_argument("--thresh", default=.1, type=float, help="Threshold on detection scores.")
+    parser.add_argument("--thresh", default=.0, type=float, help="Threshold on detection scores.")
 
     args = parser.parse_args()
     print(args)
