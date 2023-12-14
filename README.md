@@ -32,8 +32,17 @@ Utilities for the human-object interaction detection dataset [HICO-DET](http://w
 ## Citation
 If you find our work useful for your research, please consider citing us:
 ```bibtex
+@inproceedings{zhang2023pvic,
+  author    = {Zhang, Frederic Z. and Yuan, Yuhui and Campbell, Dylan and Zhong, Zhuoyao and Gould, Stephen},
+  title     = {Exploring Predicate Visual Context in Detecting Human–Object Interactions},
+  booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+  month     = {October},
+  year      = {2023},
+  pages     = {10411-10421},
+}
+
 @inproceedings{zhang2022upt,
-  author    = {Frederic Z. Zhang and Dylan Campbell and Stephen Gould},
+  author    = {Zhang, Frederic Z. and Campbell, Dylan and Gould, Stephen},
   title     = {Efficient Two-Stage Detection of Human-Object Interactions with a Novel Unary-Pairwise Transformer},
   booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
   month     = {June},
@@ -42,7 +51,7 @@ If you find our work useful for your research, please consider citing us:
 }
 
 @inproceedings{zhang2021scg,
-  author    = {Frederic Z. Zhang, Dylan Campbell and Stephen Gould},
+  author    = {Zhang, Frederic Z. and Campbell, Dylan and Gould, Stephen},
   title     = {Spatially Conditioned Graphs for Detecting Human–Object Interactions},
   booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
   month     = {October},
